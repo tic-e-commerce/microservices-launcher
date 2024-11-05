@@ -17,15 +17,27 @@ services:
       - PORT=3000
       - NATS_SERVERS=nats://nats-server:4222
 
-  auth-ms:
-    build: ./auth-ms
+  # auth-ms:
+  #   build: ./auth-ms
+  #   volumes:
+  #     - ./auth-ms/src:/usr/src/app/src
+  #   ports:
+  #     - "3001:3001"
+  #   command: npm run start:dev
+  #   environment:
+  #     - PORT=3001
+  #     - NATS_SERVERS=nats://nats-server:4222
+  #     - DATABASE_URL=${AUTH_DATABASE_URL}
+  #     - JWT_SECRET=${JWT_SECRET}
+
+  products-ms:
+    build: ./products-ms
     volumes:
-      - ./auth-ms/src:/usr/src/app/src
+      - ./products-ms/src:/usr/src/app/src
     ports:
-      - "3001:3001"
+      - "3002:3002"
     command: npm run start:dev
     environment:
-      - PORT=3001
+      - PORT=3002
       - NATS_SERVERS=nats://nats-server:4222
-      - DATABASE_URL=${AUTH_DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=${PRODUCTS_DATABASE_URL}
