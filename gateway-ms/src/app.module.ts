@@ -6,6 +6,6 @@ import { ProductsModule } from './products/products.module';
 import { CartModule } from './cart/cart.module';
 
 @Module({
-  imports: [NatsModule, AuthModule, HealthCheckModule, ProductsModule,CartModule],
+  imports: [NatsModule, AuthModule, HealthCheckModule, ProductsModule, CartModule],
 })
 export class AppModule {}
