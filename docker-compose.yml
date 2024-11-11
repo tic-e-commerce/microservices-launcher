@@ -41,3 +41,15 @@ services:
       - PORT=3002
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=${PRODUCTS_DATABASE_URL}
+
+  cart-ms:
+    build: ./cart-ms
+    volumes:   
+      - ./cart-ms/src:/usr/src/app/src
+    ports:
+      - "3005:3005"
+    command: npm run start:dev
+    environment: 
+      - PORT=3005
+      - NATS_SERVERS=nats://nats-server:4222 
+      - DATABASE_URL=${CART_DATABASE_URL}
