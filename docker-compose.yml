@@ -17,42 +17,41 @@ services:
       - PORT=${GATEWAY_MS_PORT}
       - NATS_SERVERS=nats://nats-server:4222
 
-  # auth-ms:
-  #   build: ./auth-ms
-  #   volumes:
-  #     - ./auth-ms/src:/usr/src/app/src
-  #   ports:
-  #     - "3001:3001"
-  #   command: npm run start:dev
-  #   environment:
-  #     - PORT=3001
-  #     - NATS_SERVERS=nats://nats-server:4222
-  #     - DATABASE_URL=${AUTH_DATABASE_URL}
-  #     - JWT_SECRET=${JWT_SECRET}
-
-  products-ms:
-    build: ./products-ms
+  auth-ms:
+    build: ./auth-ms
     volumes:
-      - ./products-ms/src:/usr/src/app/src
+      - ./auth-ms/src:/usr/src/app/src
+    ports:
+      - "3001:3001"
+    command: npm run start:dev
+    environment:
+      - PORT=3001
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${AUTH_DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+
+  profile-ms:
+    build: ./profile-ms
+    volumes:
+      - ./profile-ms/src:/usr/src/app/src
     ports:
       - "3002:3002"
     command: npm run start:dev
     environment:
       - PORT=3002
       - NATS_SERVERS=nats://nats-server:4222
-      - DATABASE_URL=${PRODUCTS_DATABASE_URL}
-
-  # cart-ms:
-  #   build: ./cart-ms
-  #   volumes:   
-  #     - ./cart-ms/src:/usr/src/app/src
+      - DATABASE_URL=${PROFILE_DATABASE_URL}
+  # products-ms:
+  #   build: ./products-ms
+  #   volumes:
+  #     - ./products-ms/src:/usr/src/app/src
   #   ports:
-  #     - "3005:3005"
+  #     - "3003:3003"
   #   command: npm run start:dev
-  #   environment: 
-  #     - PORT=3005
+  #   environment:
+  #     - PORT=3003
   #     - NATS_SERVERS=nats://nats-server:4222
-  #     - DATABASE_URL=${CART_DATABASE_URL}
+  #     - DATABASE_URL=${PRODUCTS_DATABASE_URL}
 
   review-ms:
     build: ./review-ms
@@ -67,3 +66,15 @@ services:
       - DATABASE_URL=${REVIEW_DATABASE_URL}
     depends_on:
       - nats-server
+
+  cart-ms:
+    build: ./cart-ms
+    volumes:   
+      - ./cart-ms/src:/usr/src/app/src
+    ports:
+      - "3005:3005"
+    command: npm run start:dev
+    environment: 
+      - PORT=3005
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${CART_DATABASE_URL}
