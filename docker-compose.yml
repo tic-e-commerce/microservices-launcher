@@ -41,17 +41,18 @@ services:
       - PORT=3002
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=${PROFILE_DATABASE_URL}
-  # products-ms:
-  #   build: ./products-ms
-  #   volumes:
-  #     - ./products-ms/src:/usr/src/app/src
-  #   ports:
-  #     - "3003:3003"
-  #   command: npm run start:dev
-  #   environment:
-  #     - PORT=3003
-  #     - NATS_SERVERS=nats://nats-server:4222
-  #     - DATABASE_URL=${PRODUCTS_DATABASE_URL}
+      
+  products-ms:
+    build: ./products-ms
+    volumes:
+      - ./products-ms/src:/usr/src/app/src
+    ports:
+      - "3003:3003"
+    command: npm run start:dev
+    environment:
+      - PORT=3003
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${PRODUCTS_DATABASE_URL}
 
   review-ms:
     build: ./review-ms
