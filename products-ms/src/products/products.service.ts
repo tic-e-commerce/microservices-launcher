@@ -1,10 +1,11 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { PrismaClient } from '@prisma/client';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { NATS_SERVICE } from 'src/config';
 import { ProductsStatusList } from './enum/products.enum';
+import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class ProductsService extends PrismaClient implements OnModuleInit {
@@ -94,5 +95,43 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
       this.logger.error(`Error deleting product with ID ${id}:`, error);
       throw new RpcException('Error deleting product');
     }
+  }
+
+  async validateProducts(ids: number[]) {
+    this.logger.log(`Validating products with IDs: ${JSON.stringify(ids)}`);
+    ids = Array.from(new Set(ids)); // Eliminar duplicados
+
+    const products = await this.product.findMany({
+      where: {
+        product_id: {
+          in: ids,
+        },
+      },
+    });
+
+    this.logger.log(`Found products: ${JSON.stringify(products)}`);
+
+    if (products.length != ids.length) {
+      throw new RpcException({
+        message: 'Some products were not found',
+        status: HttpStatus.BAD_REQUEST,
+      });
+    }
+
+    products.forEach((product) => {
+      const priceAsNumber = parseFloat(product.price.toString()); // Convertir a número
+
+      if (isNaN(priceAsNumber)) {
+        throw new RpcException({
+          message: `Product with ID ${product.product_id} has an invalid price`,
+          status: HttpStatus.BAD_REQUEST,
+        });
+      }
+
+      // Convertir el número a Decimal
+      product.price = new Decimal(priceAsNumber);
+    });
+
+    return products;
   }
 }
