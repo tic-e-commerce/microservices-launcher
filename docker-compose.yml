@@ -93,3 +93,16 @@ services:
       - DATABASE_URL=${ATTRIBUTES_DATABASE_URL}
     depends_on:
       - nats-server
+    
+  orders-ms:
+    build: ./orders-ms
+    volumes:   
+      - ./orders-ms/src:/usr/src/app/src
+    ports:
+      - "3008:3008"
+    command: npm run start:dev
+    environment: 
+      - PORT=3008
+      - NATS_SERVERS=nats://nats-server:4222 
+      - DATABASE_URL=${ORDERS_DATABASE_URL}
+  
