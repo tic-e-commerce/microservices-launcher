@@ -8,7 +8,7 @@ import {
   Delete,
   Inject,
   Query,
-  ParseUUIDPipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -41,8 +41,8 @@ export class ProductsController {
   }
 
   @Get('id/:id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.client.send('find_one_product', { id }).pipe(
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.client.send('find_one_product', id).pipe(
       catchError((error) => {
         throw new RpcException(error);
       }),
@@ -68,7 +68,7 @@ export class ProductsController {
 
   @Patch(':id')
   async update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateProductDto: UpdateProductDto,
   ) {
     try {
@@ -82,7 +82,7 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseUUIDPipe) id: string) {
+  async remove(@Param('id') id: string) {
     try {
       const result = await firstValueFrom(
         this.client.send('delete_product', { id }),

@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { PrismaClient, Products_Status } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { NATS_SERVICE } from 'src/config';
 import { ProductsStatusList } from './enum/products.enum';
@@ -61,12 +61,13 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
 
   async update(id: number, updateProductDto: UpdateProductDto) {
     try {
+      if (!updateProductDto) {
+        throw new Error('No data provided for update');
+      }
+
       const status = updateProductDto.status;
-      if (
-        status &&
-        !ProductsStatusList.includes(status as unknown as Products_Status)
-      ) {
-        throw new Error(`Invalid status value: ${status}`);
+      if (status && !ProductsStatusList.includes(status)) {
+        throw new RpcException(`Invalid status value: ${status}`);
       }
 
       const updatedProduct = await this.product.update({
@@ -74,7 +75,6 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
         data: {
           ...updateProductDto,
           update_date: new Date(),
-          status: (status as unknown as Products_Status) || undefined, // Solo asigna `status` si es válido y está definido
         },
       });
       return updatedProduct;

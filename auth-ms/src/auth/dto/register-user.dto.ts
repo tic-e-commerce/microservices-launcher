@@ -6,13 +6,16 @@ import {
   IsStrongPassword,
   Length,
   IsDate,
+  IsNotEmpty,
 } from 'class-validator';
 
 export class RegisterUserDto {
   @IsString()
+  @IsNotEmpty()
   first_name: string;
 
   @IsString()
+  @IsNotEmpty()
   last_name: string;
 
   @IsString()
@@ -34,9 +37,9 @@ export class RegisterUserDto {
 
   @IsOptional()
   @IsDate()
-  registration_date?: Date; // Puede establecerse automáticamente en el backend
+  registration_date?: Date;
 
   @IsOptional()
   @IsEnum(['active', 'inactive'])
-  status?: 'active' | 'inactive'; // Valor predeterminado puede ser 'active' en el backend
+  status?: 'active' | 'inactive';
 }
