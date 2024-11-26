@@ -29,6 +29,18 @@ services:
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=${AUTH_DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
+  auth-ms:
+    build: ./auth-ms
+    volumes:
+      - ./auth-ms/src:/usr/src/app/src
+    ports:
+      - "3001:3001"
+    command: npm run start:dev
+    environment:
+      - PORT=3001
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${AUTH_DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
 
   profile-ms:
     build: ./profile-ms
@@ -70,12 +82,12 @@ services:
 
   cart-ms:
     build: ./cart-ms
-    volumes:
+    volumes:   
       - ./cart-ms/src:/usr/src/app/src
     ports:
       - "3005:3005"
     command: npm run start:dev
-    environment:
+    environment: 
       - PORT=3005
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=${CART_DATABASE_URL}

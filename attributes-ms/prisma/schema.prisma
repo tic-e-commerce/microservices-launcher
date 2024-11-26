@@ -1,0 +1,39 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Attribute {
+  attribute_id   Int      @id @default(autoincrement())
+  attribute_name String   @db.VarChar(255)
+  attribute_type String   @db.VarChar(50)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  // Relación con AttributeValue
+  attributeValues AttributeValue[]
+}
+
+model AttributeValue {
+  attribute_value_id Int      @id @default(autoincrement())
+  product_id         Int
+  attribute_id       Int
+  value              String   @db.Text
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  // Relaciones
+  attribute Attribute @relation(fields: [attribute_id], references: [attribute_id], onDelete: Cascade)
+
+  // @@index([product_id], name: "idx_product_id")
+}
