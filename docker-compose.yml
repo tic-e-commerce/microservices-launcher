@@ -27,7 +27,7 @@ services:
     environment:
       - PORT=3001
       - NATS_SERVERS=nats://nats-server:4222
-      - DATABASE_URL=${AUTH_DATABASE_URL}
+      - DATABASE_URL=${USER_DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
 
   profile-ms:
@@ -40,8 +40,7 @@ services:
     environment:
       - PORT=3002
       - NATS_SERVERS=nats://nats-server:4222
-      - DATABASE_URL=${PROFILE_DATABASE_URL}
-
+      - DATABASE_URL=${USER_DATABASE_URL}
   products-ms:
     build: ./products-ms
     volumes:
