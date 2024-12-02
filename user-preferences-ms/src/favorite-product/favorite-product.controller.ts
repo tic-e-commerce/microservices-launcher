@@ -18,4 +18,16 @@ export class FavoriteProductController {
       addFavoriteProductDto,
     );
   }
+
+  @MessagePattern('favorite_product.get')
+  async getFavoriteProducts(@Payload() user_id: number) {
+    return this.favoriteProductService.getFavoriteProducts(user_id);
+  }
+
+  @MessagePattern('favorite_product.delete')
+  async deleteFavoriteProduct(@Payload() favorite_product_id: number) {
+    return this.favoriteProductService.deleteFavoriteProduct(
+      favorite_product_id,
+    );
+  }
 }

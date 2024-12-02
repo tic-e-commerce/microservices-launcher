@@ -14,11 +14,11 @@ datasource db {
 }
 
 model FavoriteProduct {
-  id         Int      @id @default(autoincrement())
-  product_id Int
-  user_id    Int
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  favorite_product_id Int      @id @default(autoincrement())
+  product_id          Int
+  user_id             Int
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
 
   @@map("favorite_products")
 }
