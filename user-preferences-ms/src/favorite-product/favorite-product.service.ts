@@ -30,14 +30,53 @@ export class FavoriteProductService
       await this.validateUser(user_id);
       await this.validateProduct(product_id);
 
-      const favoriteProduct = await this.favoriteProduct.create({
+      const favoriteProduct = await this.favoriteProduct.findFirst({
+        where: {
+          user_id,
+          product_id,
+        },
+      });
+
+      if (favoriteProduct) {
+        return favoriteProduct;
+      }
+
+      const newFavoriteProduct = await this.favoriteProduct.create({
         data: {
           user_id,
           product_id,
         },
       });
 
-      return favoriteProduct;
+      return newFavoriteProduct;
+    } catch (error) {
+      throw new RpcException({
+        status: 400,
+        message: error.message,
+      });
+    }
+  }
+
+  async getFavoriteProducts(user_id: number) {
+    try {
+      let products = [];
+      await this.validateUser(user_id);
+      const favoriteProducts = await this.favoriteProduct.findMany({
+        where: {
+          user_id,
+        },
+      });
+
+      for (const favoriteProduct of favoriteProducts) {
+        const product = await this.validateProduct(favoriteProduct.product_id);
+        product.favorite_product_id = favoriteProduct.favorite_product_id;
+        products.push(product);
+      }
+
+      return {
+        user_id,
+        products,
+      };
     } catch (error) {
       throw new RpcException({
         status: 400,
@@ -58,6 +97,36 @@ export class FavoriteProductService
     }
 
     return product;
+  }
+
+  async deleteFavoriteProduct(favorite_product_id: number) {
+    try {
+      const favoriteProduct = await this.favoriteProduct.findUnique({
+        where: {
+          favorite_product_id: favorite_product_id,
+        },
+      });
+
+      if (!favoriteProduct) {
+        throw new RpcException({
+          status: 404,
+          message: 'Favorite product not found',
+        });
+      }
+
+      await this.favoriteProduct.delete({
+        where: {
+          favorite_product_id: favorite_product_id,
+        },
+      });
+
+      return favoriteProduct;
+    } catch (error) {
+      throw new RpcException({
+        status: 400,
+        message: error.message,
+      });
+    }
   }
 
   async validateUser(user_id: number) {
