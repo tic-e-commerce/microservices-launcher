@@ -2,6 +2,8 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { RpcException } from '@nestjs/microservices';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class ProfileService extends PrismaClient implements OnModuleInit {
@@ -13,44 +15,103 @@ export class ProfileService extends PrismaClient implements OnModuleInit {
   }
 
   async getProfile(user_id: number) {
-    const profile = await this.user.findUnique({
-      where: {
-        user_id,
-      },
-    });
+    try {
+      const profile = await this.user.findUnique({
+        where: {
+          user_id,
+        },
+      });
 
-    if (!profile) {
+      if (!profile) {
+        throw new RpcException({
+          status: 404,
+          message: 'User not found',
+        });
+      }
+
+      const { password, ...result } = profile;
+      return result;
+    } catch (error) {
       throw new RpcException({
-        status: 404,
-        message: 'User not found',
+        status: 400,
+        message: error.message,
       });
     }
-
-    const { password, ...result } = profile;
-    return result;
   }
 
   async updateProfile(updateProfileDto: UpdateProfileDto) {
-    const { user_id, ...data } = updateProfileDto;
+    try {
+      const { user_id, ...data } = updateProfileDto;
 
-    const existingProfile = await this.user.findUnique({
-      where: { user_id },
-    });
+      const existingProfile = await this.user.findUnique({
+        where: { user_id },
+      });
 
-    if (!existingProfile) {
+      if (!existingProfile) {
+        throw new RpcException({
+          status: 404,
+          message: 'User not found',
+        });
+      }
+
+      // Actualizar el usuario con los datos proporcionados
+      const updatedProfile = await this.user.update({
+        where: { user_id },
+        data,
+      });
+
+      const { password, ...result } = updatedProfile;
+      return result;
+    } catch (error) {
       throw new RpcException({
-        status: 404,
-        message: 'User not found',
+        status: 400,
+        message: error.message,
       });
     }
+  }
 
-    // Actualizar el usuario con los datos proporcionados
-    const updatedProfile = await this.user.update({
-      where: { user_id },
-      data,
-    });
+  async changePassword(changePasswordDto: ChangePasswordDto) {
+    try {
+      const { user_id, old_password, new_password } = changePasswordDto;
+      const existingProfile = await this.user.findUnique({
+        where: { user_id },
+      });
 
-    const { password, ...result } = updatedProfile;
-    return result;
+      if (!existingProfile) {
+        throw new RpcException({
+          status: 404,
+          message: 'User not found',
+        });
+      }
+
+      const isOldPasswordValid = await bcrypt.compare(
+        old_password,
+        existingProfile.password,
+      );
+
+      if (!isOldPasswordValid) {
+        this.logger.error('Invalid old password');
+        throw new RpcException({
+          status: 400,
+          message: 'Invalid old password',
+        });
+      }
+
+      const hashedNewPassword = await bcrypt.hash(new_password, 10);
+
+      const updatedProfile = await this.user.update({
+        where: { user_id },
+        data: { password: hashedNewPassword },
+      });
+
+      const { password, ...result } = updatedProfile;
+
+      return result;
+    } catch (error) {
+      throw new RpcException({
+        status: 400,
+        message: error.message,
+      });
+    }
   }
 }

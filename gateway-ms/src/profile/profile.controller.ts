@@ -13,6 +13,7 @@ import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { NATS_SERVICE } from 'src/config';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { catchError } from 'rxjs';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('profile')
 export class ProfileController {
@@ -36,5 +37,17 @@ export class ProfileController {
         throw new RpcException(error);
       }),
     );
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('change-password')
+  async changePassword(@Body() changePasswordDto: ChangePasswordDto) {
+    return this.client
+      .send('profile.changePassword', { ...changePasswordDto })
+      .pipe(
+        catchError((error) => {
+          throw new RpcException(error);
+        }),
+      );
   }
 }
