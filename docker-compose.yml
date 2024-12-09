@@ -41,17 +41,17 @@ services:
       - PORT=3002
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=${USER_DATABASE_URL}
-  products-ms:
-    build: ./products-ms
-    volumes:
-      - ./products-ms/src:/usr/src/app/src
-    ports:
-      - "3003:3003"
-    command: npm run start:dev
-    environment:
-      - PORT=3003
-      - NATS_SERVERS=nats://nats-server:4222
-      - DATABASE_URL=${PRODUCTS_DATABASE_URL}
+  # products-ms:
+  #   build: ./products-ms
+  #   volumes:
+  #     - ./products-ms/src:/usr/src/app/src
+  #   ports:
+  #     - "3003:3003"
+  #   command: npm run start:dev
+  #   environment:
+  #     - PORT=3003
+  #     - NATS_SERVERS=nats://nats-server:4222
+  #     - DATABASE_URL=${PRODUCTS_DATABASE_URL}
 
   # review-ms:
   #   build: ./review-ms
@@ -105,14 +105,14 @@ services:
   #     - NATS_SERVERS=nats://nats-server:4222
   #     - DATABASE_URL=${ORDERS_DATABASE_URL}
 
-  user-preferences-ms:
-    build: ./user-preferences-ms
-    volumes:
-      - ./user-preferences-ms/src:/usr/src/app/src
-    ports:
-      - "3009:3009"
-    command: npm run start:dev
-    environment:
-      - PORT=3009
-      - NATS_SERVERS=nats://nats-server:4222
-      - DATABASE_URL=${USER_PREFERENCES_DATABASE_URL}
+  # user-preferences-ms:
+  #   build: ./user-preferences-ms
+  #   volumes:
+  #     - ./user-preferences-ms/src:/usr/src/app/src
+  #   ports:
+  #     - "3009:3009"
+  #   command: npm run start:dev
+  #   environment:
+  #     - PORT=3009
+  #     - NATS_SERVERS=nats://nats-server:4222
+  #     - DATABASE_URL=${USER_PREFERENCES_DATABASE_URL}
