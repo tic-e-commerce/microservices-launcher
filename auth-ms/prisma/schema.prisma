@@ -13,6 +13,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserStatus {
+  active
+  inactive
+}
+
 model User {
   user_id           Int        @id @default(autoincrement())
   first_name        String
@@ -29,7 +34,18 @@ model User {
   @@map("users")
 }
 
-enum UserStatus {
-  active
-  inactive
+enum TokenType {
+  reset_password
+}
+
+model Token {
+  token_id   Int       @id @default(autoincrement())
+  user_id    Int
+  token      String
+  token_type TokenType
+  active     Boolean   @default(true)
+  created_at DateTime  @default(now())
+  expires_at DateTime
+
+  @@map("tokens")
 }
