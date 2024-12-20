@@ -1,280 +1,197 @@
-import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  Inject,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { ClientProxy } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { NATS_SERVICE } from 'src/config/services';
 import { CreateCartDto } from './common/dto/create-cart.dto';
 import { UpdateCartDto } from './common/dto/update-cart.dto';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class CartService extends PrismaClient implements OnModuleInit {
-  private readonly logger = new Logger('CartService');
+  private readonly logger = new Logger(CartService.name);
 
   constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {
     super();
   }
 
-  async onModuleInit() { 
+  async onModuleInit() {
     await this.$connect();
     this.logger.log('Base de datos conectada');
   }
 
+  private logError(context: string, error: Error) {
+    this.logger.error(`${context}: ${error.message}`, error.stack);
+  }
+
+  private async fetchProductDetails(productId: number) {
+    try {
+      const product = await firstValueFrom(this.client.send('find_one_product', productId));
+      if (!product) throw new RpcException(`Producto con ID ${productId} no encontrado.`);
+      return {
+        product_id: productId, 
+        product_name: product.product_name,
+        price: Math.round(product.price * 100) / 100,
+        image_url: product.image_url,
+      };
+    } catch (error) {
+      this.logError(`Error obteniendo detalles del producto ${productId}`, error);
+      throw new RpcException(`Error obteniendo detalles del producto con ID ${productId}`);
+    }
+  }
+
+  private calculateTotalPrice(items: { price: number; quantity: number }[]): number {
+    return Math.round(
+      items.reduce((sum, item) => sum + item.price * item.quantity, 0) * 100
+    ) / 100;
+  }
+
   async create(createCartDto: CreateCartDto) {
     try {
-      const cartItem = await this.cartItem.create({
-        data: {
-          quantity: createCartDto.quantity,
-          productId: createCartDto.productId,
-          userId: createCartDto.userId,
-        },
+      const { product_id, quantity, user_id } = createCartDto;
+      await this.verifyProductAvailability(product_id, quantity);
+
+      const productDetails = await this.fetchProductDetails(product_id);
+      const existingCartItem = await this.cartItem.findFirst({
+        where: { user_id, product_id },
       });
-      this.logger.log(`Producto agregado al carrito con ID: ${cartItem.id}`);
-      return cartItem;
+
+      const cartItem = existingCartItem
+        ? await this.cartItem.update({
+            where: { id: existingCartItem.id },
+            data: { quantity: existingCartItem.quantity + quantity },
+          })
+        : await this.cartItem.create({
+            data: { user_id, product_id, quantity },
+          });
+
+      return {
+        ...cartItem,
+        ...productDetails,
+        total_cart_price: this.calculateTotalPrice([
+          { price: productDetails.price, quantity: cartItem.quantity },
+        ]),
+      };
     } catch (error) {
-      this.logger.error('Error al agregar producto al carrito', error);
-      throw error;
+      this.logError('Error creando producto en el carrito', error);
+      throw new RpcException('Error creando producto en el carrito.');
     }
   }
 
-  async findAll(userId: number) {
+  async findAll(user_id: number) {
     try {
-      const cartItems = await this.cartItem.findMany({
-        where: { userId },
+      const cartItems = await this.cartItem.groupBy({
+        by: ['product_id', 'user_id'],
+        _sum: { quantity: true },
+        where: { user_id },
       });
-      return cartItems;
+
+      const productDetails = await Promise.all(
+        cartItems.map((item) => this.fetchProductDetails(item.product_id))
+      );
+
+      const consolidatedCart = cartItems.map((item) => {
+        const productDetail = productDetails.find(
+          (product) => product.product_id === item.product_id
+        );
+        return {
+          product_id: item.product_id,
+          user_id: item.user_id,
+          quantity: item._sum.quantity,
+          ...productDetail,
+          total_cart_price: this.calculateTotalPrice([
+            { price: productDetail?.price || 0, quantity: item._sum.quantity },
+          ]),
+        };
+      });
+
+      return { cart: consolidatedCart };
     } catch (error) {
-      this.logger.error('Error al obtener el carrito', error);
-      throw error;
+      this.logError('Error obteniendo el carrito consolidado', error);
+      throw new RpcException('Error obteniendo el carrito consolidado.');
     }
   }
 
-  // async update(id: number, updateCartDto: UpdateCartDto) {
-  //   try {
-  //     const updatedCartItem = await this.cartItem.update({
-  //       where: { id },
-  //       data: { quantity: updateCartDto.quantity },
-  //     });
-  //     this.logger.log(`Producto en el carrito con ID: ${id} actualizado`);
-  //     return updatedCartItem;
-  //   } catch (error) {
-  //     this.logger.error(`Error al actualizar el producto en el carrito con ID: ${id}`, error);
-  //     throw error;
-  //   }
-  // }
-
-
-  // Actualizar la cantidad en el carrito de compras
-  async update(userId: number, productId: number, quantity: number) {
+  async update(updateCartDto: UpdateCartDto) {
     try {
-      return await this.cartItem.updateMany({
-        where: { userId, productId },
+      const { user_id, product_id, quantity } = updateCartDto;
+      const existingCartItem = await this.cartItem.findFirst({
+        where: { user_id, product_id },
+      });
+      if (!existingCartItem) throw new RpcException('Producto no encontrado en el carrito.');
+
+      return await this.cartItem.update({
+        where: { id: existingCartItem.id },
         data: { quantity },
       });
     } catch (error) {
-      this.logger.error('Error al actualizar la cantidad en el carrito', error);
-      throw error;
+      this.logError('Error actualizando producto en el carrito', error);
+      throw new RpcException('Error actualizando producto en el carrito.');
     }
   }
-  
 
-  async remove(id: number) {
+  async remove(user_id: number, product_id: number) {
     try {
-      const deletedCartItem = await this.cartItem.delete({
-        where: { id },
+      const cartItem = await this.cartItem.findFirst({
+        where: { user_id, product_id },
       });
-      this.logger.log(`Producto con ID: ${id} eliminado del carrito`);
-      return deletedCartItem;
+      if (!cartItem) throw new RpcException('Producto no encontrado en el carrito.');
+
+      await this.cartItem.delete({ where: { id: cartItem.id } });
+      return { message: 'Producto eliminado del carrito.' };
     } catch (error) {
-      this.logger.error(`Error al eliminar el producto con ID: ${id}`, error);
-      throw error;
+      this.logError('Error eliminando producto del carrito', error);
+      throw new RpcException('Error eliminando producto del carrito.');
     }
   }
 
-  // async remove(userId: number, productId: number) {
-  //   try {
-  //     // Eliminar el producto del carrito usando los dos parámetros
-  //     const deletedItem = await this.cartItem.deleteMany({
-  //       where: {
-  //         userId: userId,
-  //         productId: productId
-  //       }
-  //     });
-  
-  //     // Verificar si se eliminó un item
-  //     if (deletedItem.count === 0) {
-  //       return { message: 'No se encontró el producto en el carrito para eliminar.' };
-  //     }
-  
-  //     return { message: 'Producto eliminado correctamente del carrito.' };
-  //   } catch (error) {
-  //     this.logger.error('Error al eliminar el producto del carrito', error);
-  //     throw error;
-  //   }
-  // }
-  
-  
-
-
-
-  async calculateTotal(userId: number) {
+  async calculateTotal(user_id: number): Promise<number> {
     try {
-      const cartItems = await this.findAll(userId);
-      const total = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-      return { total };
+      const cartItems = await this.cartItem.findMany({ where: { user_id } });
+      const productDetails = await Promise.all(
+        cartItems.map((item) => this.fetchProductDetails(item.product_id))
+      );
+
+      const total = this.calculateTotalPrice(
+        cartItems.map((item, index) => ({
+          price: productDetails[index]?.price || 0,
+          quantity: item.quantity,
+        }))
+      );
+
+      return total;
     } catch (error) {
-      this.logger.error('Error al calcular el total del carrito', error);
-      throw error;
+      this.logError(`Error calculando el total del carrito del usuario ${user_id}`, error);
+      throw new RpcException('Error calculando el total del carrito.');
     }
   }
 
-  async clearCart(userId: number) {
+  async clearCart(user_id: number) {
     try {
-      const deletedItems = await this.cartItem.deleteMany({
-        where: { userId },
-      });
-      this.logger.log(`Carrito vaciado para el usuario con ID: ${userId}`);
+      const deletedItems = await this.cartItem.deleteMany({ where: { user_id } });
+      this.logger.log(`Carrito vaciado para el usuario con ID: ${user_id}`);
       return deletedItems;
     } catch (error) {
-      this.logger.error(`Error al vaciar el carrito del usuario con ID: ${userId}`, error);
-      throw error;
+      this.logError(`Error vaciando el carrito del usuario ${user_id}`, error);
+      throw new RpcException('Error vaciando el carrito.');
+    }
+  }
+
+  async verifyProductAvailability(productId: number, quantity: number) {
+    try {
+      const isAvailable = await this.client
+        .send<boolean>('validate_products', { ids: [productId], quantity })
+        .toPromise();
+
+      if (!isAvailable) throw new RpcException('Producto no disponible en la cantidad solicitada.');
+      return isAvailable;
+    } catch (error) {
+      this.logError(`Error verificando disponibilidad del producto ${productId}`, error);
+      throw new RpcException('Error verificando disponibilidad del producto.');
     }
   }
 }
-
-
-// import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-// import { CreateCartDto } from './dto/create-cart.dto';
-// import { UpdateCartDto } from './dto/update-cart.dto';
-// import { PrismaClient } from '@prisma/client';
-// import { ClientProxy } from '@nestjs/microservices';
-// import { NATS_SERVICE } from 'src/config/services';
-
-// @Injectable()
-// export class CartService extends PrismaClient implements OnModuleInit {
-
-//   private readonly logger = new Logger('CartService');
-
-//   constructor(
-//     @Inject(NATS_SERVICE) private readonly client: ClientProxy,
-//   ) {
-//     super();
-//   }
-
-//   async onModuleInit() {
-//     await this.$connect();
-//     this.logger.log('Base de datos conectada');
-//   } 
-
-//   // create(createCartDto: CreateCartDto) {
-//   //   return 'This action adds a new cart';
-//   // }
-
-//   // 1. Agregar producto al carrito
-//   async create(createCartDto: CreateCartDto) {
-//     try {
-//       const cartItem = await this.cartItem.create({
-//         data: {
-//           quantity: createCartDto.quantity,
-//           product: { connect: { id: createCartDto.productId } },
-//           user: { connect: { id: createCartDto.userId } },
-//         },
-//       });
-//       this.logger.log(`Producto agregado al carrito con ID: ${cartItem.id}`);
-//       return cartItem;
-//     } catch (error) {
-//       this.logger.error('Error al agregar producto al carrito', error);
-//       throw error;
-//     }
-//   }
-
-
-//   // findAll() {
-//   //   return `This action returns all cart`;
-//   // }
-
-//   // findOne(id: number) {
-//   //   return `This action returns a #${id} cart`;
-//   // }
-
-//   // update(id: number, updateCartDto: UpdateCartDto) {
-//   //   return `This action updates a #${id} cart`;
-//   // }
-
-//   // remove(id: number) {
-//   //   return `This action removes a #${id} cart`;
-//   // }
-
-//   // 2. Obtener ítems del carrito para un usuario
-//   async findAll(userId: number) {
-//     try {
-//       const cartItems = await this.cartItem.findMany({
-//         where: { userId },
-//         include: { product: true }, // Incluir detalles del producto
-//       });
-//       return cartItems.map(item => ({
-//         ...item,
-//         total: item.quantity * item.product.price, // Cálculo de subtotal por ítem
-//       }));
-//     } catch (error) {
-//       this.logger.error('Error al obtener el carrito', error);
-//       throw error;
-//     }
-//   }
-
-//   // 3. Actualizar cantidad de un producto en el carrito
-//   async update(id: number, updateCartDto: UpdateCartDto) {
-//     try {
-//       const updatedCartItem = await this.cartItem.update({
-//         where: { id },
-//         data: { quantity: updateCartDto.quantity },
-//       });
-//       this.logger.log(`Producto en el carrito con ID: ${id} actualizado`);
-//       return updatedCartItem;
-//     } catch (error) {
-//       this.logger.error(`Error al actualizar el producto en el carrito con ID: ${id}`, error);
-//       throw error;
-//     }
-//   }
-
-//   // 4. Eliminar un producto del carrito
-//   async remove(id: number) {
-//     try {
-//       const deletedCartItem = await this.cartItem.delete({
-//         where: { id },
-//       });
-//       this.logger.log(`Producto con ID: ${id} eliminado del carrito`);
-//       return deletedCartItem;
-//     } catch (error) {
-//       this.logger.error(`Error al eliminar el producto con ID: ${id}`, error);
-//       throw error;
-//     }
-//   }
-
-//   // 5. Calcular el total del carrito
-//   async calculateTotal(userId: number) {
-//     try {
-//       const cartItems = await this.findAll(userId);
-//       const total = cartItems.reduce((sum, item) => sum + item.total, 0);
-//       return { total };
-//     } catch (error) {
-//       this.logger.error('Error al calcular el total del carrito', error);
-//       throw error;
-//     }
-//   }
-
-//   // 6. Vaciar el carrito
-//   async clearCart(userId: number) {
-//     try {
-//       const deletedItems = await this.cartItem.deleteMany({
-//         where: { userId },
-//       });
-//       this.logger.log(`Carrito vaciado para el usuario con ID: ${userId}`);
-//       return deletedItems;
-//     } catch (error) {
-//       this.logger.error(`Error al vaciar el carrito del usuario con ID: ${userId}`, error);
-//       throw error;
-//     }
-//   }
-// }
-
-
-

@@ -10,8 +10,6 @@ import { NATS_SERVICE } from 'src/config/services';
         name: NATS_SERVICE,
         transport: Transport.NATS,
         options: {
-          //host: envs.productMicroserviceHost,
-          //port: envs.productMicroservicePort
           servers: envs.natsServers,
         },
       },
@@ -23,8 +21,6 @@ import { NATS_SERVICE } from 'src/config/services';
         name: NATS_SERVICE,
         transport: Transport.NATS,
         options: {
-          //host: envs.productMicroserviceHost,
-          //port: envs.productMicroservicePort
           servers: envs.natsServers,
         },
       },

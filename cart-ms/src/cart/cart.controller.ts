@@ -8,69 +8,39 @@ import { UpdateCartDto } from './common/dto/update-cart.dto';
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
-  // 1. Agregar producto al carrito
+  // Agregar un producto al carrito 
   @MessagePattern('createCart')
   create(@Payload() createCartDto: CreateCartDto) {
     return this.cartService.create(createCartDto);
   }
 
-  // 2. Obtener todos los productos del carrito para un usuario
+  // Obtener el carrito completo de un usuario
   @MessagePattern('findAllCart')
-  async findAll(@Payload('userId') userId: number) {
-    return this.cartService.findAll(userId);
+  async findAll(@Payload('user_id') user_id: number) {
+    return this.cartService.findAll(user_id);
   }
 
-  // @MessagePattern('findOneCart')
-  // findOne(@Payload('id') id: number) {
-  //   return this.cartService.findOne(id);
-  // }
-
-  // 3. Actualizar la cantidad de un producto en el carrito
-
-  // @MessagePattern('updateCart')
-  // update(@Payload() updateCartDto: UpdateCartDto) {
-  //   return this.cartService.update(updateCartDto.id, updateCartDto);
-  // }
-
+  // Actualizar la cantidad de un producto en el carrito
   @MessagePattern('updateCart')
-  updateQuantity(
-    @Payload()
-    {
-      userId,
-      productId,
-      quantity,
-    }: {
-      userId: number;
-      productId: number;
-      quantity: number;
-    },
-  ) {
-    return this.cartService.update(userId, productId, quantity);
+  async updateQuantity(@Payload() updateCartDto: UpdateCartDto) {
+    return this.cartService.update(updateCartDto);
   }
-
-  //4. Eliminar un producto del carrito
+  
+  // Eliminar un producto del carrito
   @MessagePattern('removeCart')
-  remove(@Payload() id: number) {
-    return this.cartService.remove(id);
+  remove(@Payload() { user_id, product_id }: { user_id: number; product_id: number }) {
+    return this.cartService.remove(user_id, product_id);
   }
-
-  // // 4. Eliminar un producto del carrito
-  // @MessagePattern('removeCart')
-  // remove(
-  //   @Payload() { userId, productId }: { userId: number; productId: number },
-  // ) {
-  //   return this.cartService.remove(userId, productId);
-  // }
-
-  // 5. Calcular el total del carrito
+  
+  // Calcular el total del carrito
   @MessagePattern('calculateTotalCart')
-  async calculateTotal(@Payload() userId: number) {
-    return this.cartService.calculateTotal(userId);
+  async calculateTotal(@Payload('user_id') user_id: number) {
+    return this.cartService.calculateTotal(user_id);
   }
 
-  // 6. Vaciar el carrito
+  // Vaciar el carrito completo de un usuario
   @MessagePattern('clearCart')
-  async clearCart(@Payload() userId: number) {
-    return this.cartService.clearCart(userId);
+  async clearCart(@Payload('user_id') user_id: number) {
+    return this.cartService.clearCart(user_id);
   }
 }

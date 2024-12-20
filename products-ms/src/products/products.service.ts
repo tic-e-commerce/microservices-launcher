@@ -97,41 +97,31 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
     }
   }
 
-  async validateProducts(ids: number[]) {
-    this.logger.log(`Validating products with IDs: ${JSON.stringify(ids)}`);
-    ids = Array.from(new Set(ids)); // Eliminar duplicados
+  async validateProducts(ids: number[], quantity: number): Promise<boolean> {
+    this.logger.log(`Validando productos con IDs: ${JSON.stringify(ids)}`);
 
     const products = await this.product.findMany({
       where: {
-        product_id: {
-          in: ids,
-        },
+        product_id: { in: ids },
       },
     });
 
-    this.logger.log(`Found products: ${JSON.stringify(products)}`);
-
-    if (products.length != ids.length) {
+    if (products.length !== ids.length) {
       throw new RpcException({
-        message: 'Some products were not found',
+        message: 'Algunos productos no fueron encontrados.',
         status: HttpStatus.BAD_REQUEST,
       });
     }
 
-    products.forEach((product) => {
-      const priceAsNumber = parseFloat(product.price.toString()); // Convertir a número
-
-      if (isNaN(priceAsNumber)) {
+    for (const product of products) {
+      if (product.stock < quantity) {
         throw new RpcException({
-          message: `Product with ID ${product.product_id} has an invalid price`,
+          message: `El producto con ID ${product.product_id} no tiene suficiente stock.`,
           status: HttpStatus.BAD_REQUEST,
         });
       }
+    }
 
-      // Convertir el número a Decimal
-      product.price = new Decimal(priceAsNumber);
-    });
-
-    return products;
+    return true;
   }
 }
