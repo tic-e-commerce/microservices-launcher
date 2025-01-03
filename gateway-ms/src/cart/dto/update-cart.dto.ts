@@ -1,20 +1,20 @@
-// import { PartialType } from '@nestjs/mapped-types';
-// import { CreateCartDto } from './create-cart.dto';
+import { IsInt, IsNotEmpty, IsOptional, IsPositive } from 'class-validator';
 
-// export class UpdateCartDto extends PartialType(CreateCartDto) {}
-
-
-import { PartialType } from '@nestjs/mapped-types';
-import { IsInt, IsPositive, IsOptional } from 'class-validator';
-import { CreateCartDto } from './create-cart.dto';
-
-export class UpdateCartDto extends PartialType(CreateCartDto) {
+export class UpdateCartDto {
   @IsInt()
   @IsOptional()
-  id?: number; // ID del item en el carrito, opcional para actualización específica
+  id?: number;
+
+  @IsInt()
+  @IsNotEmpty()
+  user_id: number;
+
+  @IsInt()
+  @IsNotEmpty()
+  product_id: number;
 
   @IsInt()
   @IsPositive()
-  @IsOptional()
-  quantity?: number; // Cantidad del producto, opcional para actualización
+  @IsNotEmpty()
+  quantity: number;
 }

@@ -13,8 +13,8 @@ import {
 import { CreateCartDto } from './dto/create-cart.dto';
 import { UpdateCartDto } from './dto/update-cart.dto';
 import { NATS_SERVICE } from 'src/config';
-import { ClientProxy } from '@nestjs/microservices';
-import { FindCartDto } from 'src/common';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 
 @Controller('cart')
 export class CartController {
@@ -23,115 +23,115 @@ export class CartController {
   constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
   @Post()
-  create(@Body() createCartDto: CreateCartDto) {
+  async create(@Body() createCartDto: CreateCartDto) {
     this.logger.log('Creando un nuevo producto en el carrito');
-    return this.client.send('createCart', createCartDto);
+    try {
+      const response = await firstValueFrom(
+        this.client.send('createCart', createCartDto),
+      );
+      return response;
+    } catch (error) {
+      this.logger.error(
+        'Error al crear un producto en el carrito',
+        error.message,
+      );
+      throw new RpcException(error);
+    }
   }
-
-  @Get(':userId')
-  // findAll(@Param('userId') userId: number) {
-  //   findAll(@Param('userId') userId: string) {
-  //   this.logger.log(`Obteniendo todos los productos en el carrito del usuario con ID: ${userId}`);
-  //   return this.client.send('findAllCart', {userId});
-  // }
-  findAll(@Param() findCartDto: FindCartDto) {
-    const { userId } = findCartDto;
+  
+  @Get(':user_id')
+  async findAll(@Param('user_id', ParseIntPipe) user_id: number) {
     this.logger.log(
-      `Obteniendo todos los productos en el carrito del usuario con ID: ${userId}`,
+      `Obteniendo todos los productos en el carrito del usuario con ID: ${user_id}`,
     );
-    return this.client.send('findAllCart', userId);
+    try {
+      const response = await firstValueFrom(
+        this.client.send('findAllCart', { user_id }),
+      );
+      return response;
+    } catch (error) {
+      this.logger.error('Error al obtener el carrito', error.message);
+      throw new RpcException(error);
+    }
   }
 
-  // @Post(':id')
-  // update(
-  //   @Param('id') id: number,
-  //   @Body() updateCartDto: UpdateCartDto,
-  // ) {
-  //   this.logger.log(`Actualizando el producto en el carrito con ID: ${id}`);
-  //   return this.client.send('updateCart', { ...updateCartDto, id });
-  // }
-  @Patch(':userId/:productId')
-  updateQuantity(
-    @Param('userId', ParseIntPipe) userId: number,
-    @Param('productId', ParseIntPipe) productId: number,
-    @Body() updateCartDto: UpdateCartDto, // donde solo actualizas la cantidad
+  @Patch(':user_id/:product_id')
+  async updateQuantity(
+    @Param('user_id', ParseIntPipe) user_id: number,
+    @Param('product_id', ParseIntPipe) product_id: number,
+    @Body() updateCartDto: UpdateCartDto,
   ) {
     this.logger.log(
-      `Actualizando la cantidad del producto con ID: ${productId} en el carrito del usuario con ID: ${userId}`,
+      `Actualizando la cantidad del producto con ID: ${product_id} en el carrito del usuario con ID: ${user_id}`,
     );
-    return this.client.send('updateCart', {
-      userId,
-      productId,
-      quantity: updateCartDto.quantity,
-    });
+
+    try {
+      const updatePayload = { ...updateCartDto, user_id, product_id };
+      const response = await firstValueFrom(
+        this.client.send('updateCart', updatePayload),
+      );
+      return response;
+    } catch (error) {
+      this.logger.error(
+        'Error al actualizar la cantidad del producto',
+        error.message,
+      );
+      throw new RpcException(error);
+    }
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: number) {
-    this.logger.log(`Eliminando producto con ID: ${id} del carrito`);
-    return this.client.send('removeCart', id);
-  }
-  // @Delete(':userId/:productId')
-  // remove(
-  //   @Param('userId') userId: number,
-  //   @Param('productId') productId: number,
-  // ) {
-  //   this.logger.log(
-  //     `Eliminando producto con ID: ${productId} del carrito del usuario con ID: ${userId}`,
-  //   );
-  //   return this.client.send('removeCart', { userId, productId });
-  // }
-
-  @Get(':userId/total')
-  calculateTotal(@Param('userId') userId: number) {
+  @Delete(':user_id/:product_id')
+  async remove(
+    @Param('user_id', ParseIntPipe) user_id: number,
+    @Param('product_id', ParseIntPipe) product_id: number,
+  ) {
     this.logger.log(
-      `Calculando el total del carrito del usuario con ID: ${userId}`,
+      `Eliminando producto con ID: ${product_id} del carrito del usuario con ID: ${user_id}`,
     );
-    return this.client.send('calculateTotalCart', userId);
+    try {
+      const response = await firstValueFrom(
+        this.client.send('removeCart', { user_id, product_id }),
+      );
+      return response;
+    } catch (error) {
+      this.logger.error(
+        'Error al eliminar el producto del carrito',
+        error.message,
+      );
+      throw new RpcException(error);
+    }
   }
 
-  @Delete(':userId/clear')
-  clearCart(@Param('userId') userId: number) {
-    this.logger.log(`Vaciando el carrito del usuario con ID: ${userId}`);
-    return this.client.send('clearCart', userId);
+  @Get(':user_id/total')
+  async calculateTotal(@Param('user_id') user_id: number) {
+    this.logger.log(
+      `Calculando el total del carrito del usuario con ID: ${user_id}`,
+    );
+    try {
+      const response = await firstValueFrom(
+        this.client.send('calculateTotalCart', { user_id }),
+      );
+      return response;
+    } catch (error) {
+      this.logger.error(
+        'Error al calcular el total del carrito',
+        error.message,
+      );
+      throw new RpcException(error);
+    }
+  }
+
+  @Delete(':user_id/clear')
+  async clearCart(@Param('user_id', ParseIntPipe) user_id: number) {
+    this.logger.log(`Vaciando el carrito del usuario con ID: ${user_id}`);
+    try {
+      const response = await firstValueFrom(
+        this.client.send('clearCart', { user_id }),
+      );
+      return response;
+    } catch (error) {
+      this.logger.error('Error al vaciar el carrito', error.message);
+      throw new RpcException(error);
+    }
   }
 }
-
-// import { Controller, Get, Post, Body, Param, Delete, Inject } from '@nestjs/common';
-// import { CreateCartDto } from './dto/create-cart.dto';
-// import { NATS_SERVICE } from 'src/config';
-// import { ClientProxy } from '@nestjs/microservices';
-
-// @Controller('cart')
-// export class CartController {
-//   constructor(
-//     @Inject(NATS_SERVICE) private readonly client: ClientProxy,
-//   ) {}
-
-//   @Post()
-//   create(@Body() createCartDto: CreateCartDto) {
-//     return this.client.send('createCart', createCartDto);
-//   }
-
-//   @Get()
-//   findAll() {
-//     return this.client.send('findAllCart', {});
-//   }
-
-//   @Get(':id')
-//   findOne(@Param('id') id: string) {
-//     return this.client.send('findOneCart', {id});
-//   }
-
-//   // @Patch(':id')
-//   // update(
-//   //   @Param('id') id: string,
-//   //   @Body() updateCartDto: UpdateCartDto) {
-//   //   return this.cartService.update(+id, updateCartDto);
-//   // }
-
-//   @Delete(':id')
-//   remove(@Param('id') id: string) {
-//     return this.client.send('removeCart', {id});
-//   }
-// }

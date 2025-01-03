@@ -6,18 +6,6 @@ import { NatsModule } from 'src/transports/nats.module';
 @Module({
   controllers: [CartController],
   providers: [CartService],
-  imports: [
-    // ClientsModule.register([
-    //   {
-    //     name: PRODUCT_SERVICE,
-    //     transport: Transport.TCP,
-    //     options: {
-    //       // host: envs.productsMicroserviceHost,
-    //       // port: envs.productsMicroservicePort,
-    //     },
-    //   },
-    // ]),
-    NatsModule
-  ],
+  imports: [NatsModule],
 })
 export class CartModule {}
