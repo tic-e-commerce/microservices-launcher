@@ -5,7 +5,7 @@ steps:
     args:
       - -c
       - |
-        docker build -t us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/profile-ms -f profile-ms/dockerfile.prod --platform=linux/amd64 --build-arg USER_PREFERENCES_DATABASE_URL=$$DATABASE_URL .
+        docker build -t us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/user-preferences-ms -f user-preferences-ms/dockerfile.prod --platform=linux/amd64 --build-arg USER_PREFERENCES_DATABASE_URL=$$DATABASE_URL .
     secretEnv: ['DATABASE_URL']
 
   # Step 2: Push the Docker image to the registry
@@ -13,7 +13,7 @@ steps:
     args:
       [
         'push',
-        'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/profile-ms',
+        'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/user-preferences-ms',
       ]
 
 # Available secrets configuration, linking the secret in Secret Manager to the DATABASE_URL env var
