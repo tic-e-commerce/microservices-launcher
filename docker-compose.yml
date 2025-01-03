@@ -30,17 +30,17 @@ services:
       - APP_EMAIL_PASSWORD=${APP_EMAIL_PASSWORD}
       - EMAIL=${EMAIL}
       - FRONTEND_URL=${FRONTEND_URL}
-  # profile-ms:
-  #   build: ./profile-ms
-  #   volumes:
-  #     - ./profile-ms/src:/usr/src/app/src
-  #   ports:
-  #     - "3002:3002"
-  #   command: npm run start:dev
-  #   environment:
-  #     - PORT=3002
-  #     - NATS_SERVERS=nats://nats-server:4222
-  #     - DATABASE_URL=${USER_DATABASE_URL}
+  profile-ms:
+    build: ./profile-ms
+    volumes:
+      - ./profile-ms/src:/usr/src/app/src
+    ports:
+      - "3002:3002"
+    command: npm run start:dev
+    environment:
+      - PORT=3002
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${USER_DATABASE_URL}
   # products-ms:
   #   build: ./products-ms
   #   volumes:
