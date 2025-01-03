@@ -13,7 +13,6 @@ FROM node:21-alpine3.19 as build
 
 WORKDIR /usr/src/app
 
-
 # Copy from deps, node modules
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 
