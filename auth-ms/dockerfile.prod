@@ -3,37 +3,42 @@ FROM node:21-alpine3.19 as deps
 
 WORKDIR /usr/src/app
 
-COPY package.json ./
-COPY package-lock.json ./
+# Copiar el package.json y package-lock.json desde el contexto adecuado
+COPY ./auth-ms/package.json ./  
+COPY ./auth-ms/package-lock.json ./
 
 RUN npm install
 
 # Builder - Build the app
 FROM node:21-alpine3.19 as build
 
+ARG USER_DATABASE_URL
+ENV DATABASE_URL=$USER_DATABASE_URL
+
 WORKDIR /usr/src/app
 
-
-# Copy from deps, node modules
+# Copiar los node_modules desde la etapa de dependencias
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 
+# Copiar el código fuente de la aplicación
+COPY ./auth-ms . 
 
-# Copy all app source code 
-COPY . .
-
-# RUN npm run test
-RUN npm run build
-
-RUN npm ci -f --only=production && npm cache clean --force
-
+# Ejecutar las migraciones y generar el cliente de Prisma
+RUN npx prisma migrate deploy
 RUN npx prisma generate
 
+# Construir la aplicación
+RUN npm run build
 
-# Create final docker image
+# Instalar dependencias solo para producción y limpiar el cache
+RUN npm ci -f --only=production && npm cache clean --force
+
+# Crear la imagen final
 FROM node:21-alpine3.19 as prod
 
 WORKDIR /usr/src/app
 
+# Copiar los node_modules y la aplicación construida
 COPY --from=build /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/dist ./dist
 
