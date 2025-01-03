@@ -3,28 +3,33 @@ kind: Deployment
 metadata:
   creationTimestamp: null
   labels:
-    app: gateway-ms
-  name: gateway-ms
+    app: products-ms
+  name: products-ms
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gateway-ms
+      app: products-ms
   strategy: {}
   template:
     metadata:
       creationTimestamp: null
       labels:
-        app: gateway-ms
+        app: products-ms
     spec:
       containers:
-        - image: us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms
-          name: gateway-ms
+        - image: us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/products-ms
+          name: products-ms
           env:
             - name: PORT
               value: "3000"
             - name: NATS_SERVERS
-              value: "nats://nats"
+              value: "nats://nats:4222"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: products-secrets
+                  key: database_url
           resources:
             requests:
               memory: "128Mi"
@@ -32,3 +37,4 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "250m"
+status: {}
