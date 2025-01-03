@@ -3,8 +3,8 @@ FROM node:21-alpine3.19 as deps
 
 WORKDIR /usr/src/app
 
-COPY package.json ./
-COPY package-lock.json ./
+COPY gateway-ms/package.json ./  
+COPY gateway-ms/package-lock.json ./  
 
 RUN npm install
 
@@ -16,15 +16,13 @@ WORKDIR /usr/src/app
 # Copy from deps, node modules
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 
-
-# Copy all app source code 
-COPY . .
+# Copy all app source code
+COPY gateway-ms/ .  
 
 # RUN npm run test
 RUN npm run build
 
 RUN npm ci -f --only=production && npm cache clean --force
-
 
 # Create final docker image
 FROM node:21-alpine3.19 as prod
