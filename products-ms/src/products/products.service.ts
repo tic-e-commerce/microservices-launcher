@@ -1,10 +1,11 @@
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { PrismaClient } from '@prisma/client';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { NATS_SERVICE } from 'src/config';
 import { ProductsStatusList } from './enum/products.enum';
+import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class ProductsService extends PrismaClient implements OnModuleInit {
@@ -94,5 +95,33 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
       this.logger.error(`Error deleting product with ID ${id}:`, error);
       throw new RpcException('Error deleting product');
     }
+  }
+
+  async validateProducts(ids: number[], quantity: number): Promise<boolean> {
+    this.logger.log(`Validando productos con IDs: ${JSON.stringify(ids)}`);
+
+    const products = await this.product.findMany({
+      where: {
+        product_id: { in: ids },
+      },
+    });
+
+    if (products.length !== ids.length) {
+      throw new RpcException({
+        message: 'Algunos productos no fueron encontrados.',
+        status: HttpStatus.BAD_REQUEST,
+      });
+    }
+
+    for (const product of products) {
+      if (product.stock < quantity) {
+        throw new RpcException({
+          message: `El producto con ID ${product.product_id} no tiene suficiente stock.`,
+          status: HttpStatus.BAD_REQUEST,
+        });
+      }
+    }
+
+    return true;
   }
 }

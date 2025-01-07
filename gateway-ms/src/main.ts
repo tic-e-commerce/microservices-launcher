@@ -7,6 +7,12 @@ import { RpcCustomExceptionFilter } from './common';
 async function bootstrap() {
   const logger = new Logger('Main-Gateway');
   const app = await NestFactory.create(AppModule);
+
+  app.enableCors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
   app.setGlobalPrefix('api', {
     exclude: [
       {
@@ -25,7 +31,7 @@ async function bootstrap() {
   app.useGlobalFilters(new RpcCustomExceptionFilter());
   await app.listen(envs.PORT);
 
-  console.log('Health check configured');
+  // console.log('Health check configured');
   logger.log(`Gateway is running on: ${envs.PORT}`);
 }
 bootstrap();

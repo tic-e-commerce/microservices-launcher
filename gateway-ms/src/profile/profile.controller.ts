@@ -1,13 +1,53 @@
-import { Controller, Get, Inject } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  ParseIntPipe,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { NATS_SERVICE } from 'src/config';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { catchError } from 'rxjs';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('profile')
 export class ProfileController {
   constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
-  @Get()
-  async getProfile() {
-    return this.client.send('profile.get', {});
+  @UseGuards(AuthGuard)
+  @Get(':user_id')
+  async getProfile(@Param('user_id', ParseIntPipe) user_id: number) {
+    return this.client.send('profile.get', { user_id }).pipe(
+      catchError((error) => {
+        throw new RpcException(error);
+      }),
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('update')
+  async updateProfile(@Body() updateProfileDto: UpdateProfileDto) {
+    return this.client.send('profile.update', { ...updateProfileDto }).pipe(
+      catchError((error) => {
+        throw new RpcException(error);
+      }),
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('change-password')
+  async changePassword(@Body() changePasswordDto: ChangePasswordDto) {
+    return this.client
+      .send('profile.changePassword', { ...changePasswordDto })
+      .pipe(
+        catchError((error) => {
+          throw new RpcException(error);
+        }),
+      );
   }
 }

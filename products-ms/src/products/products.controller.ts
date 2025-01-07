@@ -35,4 +35,10 @@ export class ProductsController {
   remove(@Payload() id: number) {
     return this.productsService.remove(id);
   }
+
+  @MessagePattern('validate_products')
+  async validateProduct(@Payload() data: { ids: number[]; quantity: number }) {
+    const { ids, quantity } = data;
+    return this.productsService.validateProducts(ids, quantity);
+  }
 }

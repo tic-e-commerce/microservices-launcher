@@ -8,6 +8,8 @@ import { ProfileModule } from './profile/profile.module';
 import { ReviewModule } from './review/review.module';
 import { AttributesModule } from './attributes/attributes.module';
 import { ImageModule } from './image/image.module';
+import { OrdersModule } from './orders/orders.module';
+import { UserPreferencesModule } from './user-preferences/user-preferences.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { ImageModule } from './image/image.module';
     ReviewModule,
     AttributesModule,
     ImageModule,
+    OrdersModule,
+    UserPreferencesModule,
   ],
 })
 export class AppModule {}

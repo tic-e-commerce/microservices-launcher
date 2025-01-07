@@ -15,6 +15,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { User } from './decorators';
 import { CurrentUser } from './interfaces/current-user.interface';
 import { Token } from './decorators/token.decorator';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -42,5 +43,23 @@ export class AuthController {
   @Get('verify')
   async verifyToken(@User() user: CurrentUser, @Token() token: string) {
     return { user, token };
+  }
+
+  @Post('send-reset-password-email')
+  async sendResetPasswordEmail(@Body('email') email: string) {
+    return this.client.send('auth.send_email.reset_password', email).pipe(
+      catchError((error) => {
+        throw new RpcException(error);
+      }),
+    );
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.client.send('auth.reset.password', resetPasswordDto).pipe(
+      catchError((error) => {
+        throw new RpcException(error);
+      }),
+    );
   }
 }

@@ -1,0 +1,51 @@
+# Dependencies
+FROM node:21-alpine3.19 as deps
+
+WORKDIR /usr/src/app
+
+# Copiar el package.json y package-lock.json desde el contexto adecuado
+COPY ./profile-ms/package.json ./  
+COPY ./profile-ms/package-lock.json ./
+
+RUN npm install
+
+# Builder - Build the app
+FROM node:21-alpine3.19 as build
+
+ARG USER_DATABASE_URL
+ENV DATABASE_URL=$USER_DATABASE_URL
+
+WORKDIR /usr/src/app
+
+# Copiar los node_modules desde la etapa de dependencias
+COPY --from=deps /usr/src/app/node_modules ./node_modules
+
+# Copiar el código fuente de la aplicación
+COPY ./profile-ms . 
+
+# Ejecutar las migraciones y generar el cliente de Prisma
+RUN npx prisma migrate deploy
+RUN npx prisma generate
+
+# Construir la aplicación
+RUN npm run build
+
+# Instalar dependencias solo para producción y limpiar el cache
+RUN npm ci -f --only=production && npm cache clean --force
+
+# Crear la imagen final
+FROM node:21-alpine3.19 as prod
+
+WORKDIR /usr/src/app
+
+# Copiar los node_modules y la aplicación construida
+COPY --from=build /usr/src/app/node_modules ./node_modules
+COPY --from=build /usr/src/app/dist ./dist
+
+ENV NODE_ENV=production
+
+USER node
+
+EXPOSE 3000
+
+CMD [ "node", "dist/main.js" ]
