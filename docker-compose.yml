@@ -41,78 +41,66 @@ services:
       - PORT=3002
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=${USER_DATABASE_URL}
-  # products-ms:
-  #   build: ./products-ms
-  #   volumes:
-  #     - ./products-ms/src:/usr/src/app/src
-  #   ports:
-  #     - "3003:3003"
-  #   command: npm run start:dev
-  #   environment:
-  #     - PORT=3003
-  #     - NATS_SERVERS=nats://nats-server:4222
-  #     - DATABASE_URL=${PRODUCTS_DATABASE_URL}
+  products-ms:
+    build: ./products-ms
+    volumes:
+      - ./products-ms/src:/usr/src/app/src
+    ports:
+      - "3003:3003"
+    command: npm run start:dev
+    environment:
+      - PORT=3003
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${PRODUCTS_DATABASE_URL}
+ review-ms:
+    build: ./review-ms
+    volumes:
+      - ./review-ms/src:/usr/src/app/src
+    ports:
+      - "3004:3004"
+    command: npm run start:dev
+    environment:
+      - PORT=3004
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${REVIEW_DATABASE_URL}
+    depends_on:
+      - nats-server
+ cart-ms:
+    build: ./cart-ms
+    volumes:
+      - ./cart-ms/src:/usr/src/app/src
+    ports:
+      - "3005:3005"
+    command: npm run start:dev
+    environment:
+      - PORT=3005
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${CART_DATABASE_URL}
 
-  # review-ms:
-  #   build: ./review-ms
-  #   volumes:
-  #     - ./review-ms/src:/usr/src/app/src
-  #   ports:
-  #     - "3004:3004"
-  #   command: npm run start:dev
-  #   environment:
-  #     - PORT=3004
-  #     - NATS_SERVERS=nats://nats-server:4222
-  #     - DATABASE_URL=${REVIEW_DATABASE_URL}
-  #   depends_on:
-  #     - nats-server
+  attributes-ms:
+    build: ./attributes-ms
+    volumes:
+      - ./attributes-ms/src:/usr/src/app/src
+    ports:
+      - "3006:3006"
+    command: npm run start:dev
+    environment:
+      - PORT=3006
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${ATTRIBUTES_DATABASE_URL}
+    depends_on:
+      - nats-server
 
-  # cart-ms:
-  #   build: ./cart-ms
-  #   volumes:
-  #     - ./cart-ms/src:/usr/src/app/src
-  #   ports:
-  #     - "3005:3005"
-  #   command: npm run start:dev
-  #   environment:
-  #     - PORT=3005
-  #     - NATS_SERVERS=nats://nats-server:4222
-  #     - DATABASE_URL=${CART_DATABASE_URL}
-
-  # attributes-ms:
-  #   build: ./attributes-ms
-  #   volumes:
-  #     - ./attributes-ms/src:/usr/src/app/src
-  #   ports:
-  #     - "3006:3006"
-  #   command: npm run start:dev
-  #   environment:
-  #     - PORT=3006
-  #     - NATS_SERVERS=nats://nats-server:4222
-  #     - DATABASE_URL=${ATTRIBUTES_DATABASE_URL}
-  #   depends_on:
-  #     - nats-server
-
-  # orders-ms:
-  #   build: ./orders-ms
-  #   volumes:
-  #     - ./orders-ms/src:/usr/src/app/src
-  #   ports:
-  #     - "3008:3008"
-  #   command: npm run start:dev
-  #   environment:
-  #     - PORT=3008
-  #     - NATS_SERVERS=nats://nats-server:4222
-  #     - DATABASE_URL=${ORDERS_DATABASE_URL}
-
-  # user-preferences-ms:
-  #   build: ./user-preferences-ms
-  #   volumes:
-  #     - ./user-preferences-ms/src:/usr/src/app/src
-  #   ports:
-  #     - "3009:3009"
-  #   command: npm run start:dev
-  #   environment:
-  #     - PORT=3009
-  #     - NATS_SERVERS=nats://nats-server:4222
-  #     - DATABASE_URL=${USER_PREFERENCES_DATABASE_URL}
+  image-ms:
+    build: ./image-ms
+    volumes:
+      - ./image-ms/src:/usr/src/app/src
+    ports:
+      - "3007:3007"
+    command: npm run start:dev
+    environment:
+      - PORT=3007
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${IMAGES_DATABASE_URL}
+    depends_on:
+      - nats-server
