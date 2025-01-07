@@ -17,30 +17,30 @@ services:
       - PORT=${GATEWAY_MS_PORT}
       - NATS_SERVERS=nats://nats-server:4222
 
-  auth-ms:
-    build: ./auth-ms
-    volumes:
-      - ./auth-ms/src:/usr/src/app/src
-    ports:
-      - "3001:3001"
-    command: npm run start:dev
-    environment:
-      - PORT=3001
-      - NATS_SERVERS=nats://nats-server:4222
-      - DATABASE_URL=${AUTH_DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
+  # auth-ms:
+  #   build: ./auth-ms
+  #   volumes:
+  #     - ./auth-ms/src:/usr/src/app/src
+  #   ports:
+  #     - "3001:3001"
+  #   command: npm run start:dev
+  #   environment:
+  #     - PORT=3001
+  #     - NATS_SERVERS=nats://nats-server:4222
+  #     - DATABASE_URL=${AUTH_DATABASE_URL}
+  #     - JWT_SECRET=${JWT_SECRET}
 
-  profile-ms:
-    build: ./profile-ms
-    volumes:
-      - ./profile-ms/src:/usr/src/app/src
-    ports:
-      - "3002:3002"
-    command: npm run start:dev
-    environment:
-      - PORT=3002
-      - NATS_SERVERS=nats://nats-server:4222
-      - DATABASE_URL=${PROFILE_DATABASE_URL}
+  # profile-ms:
+  #   build: ./profile-ms
+  #   volumes:
+  #     - ./profile-ms/src:/usr/src/app/src
+  #   ports:
+  #     - "3002:3002"
+  #   command: npm run start:dev
+  #   environment:
+  #     - PORT=3002
+  #     - NATS_SERVERS=nats://nats-server:4222
+  #     - DATABASE_URL=${PROFILE_DATABASE_URL}
 
   products-ms:
     build: ./products-ms
@@ -68,17 +68,17 @@ services:
     depends_on:
       - nats-server
 
-  cart-ms:
-    build: ./cart-ms
-    volumes:   
-      - ./cart-ms/src:/usr/src/app/src
-    ports:
-      - "3005:3005"
-    command: npm run start:dev
-    environment: 
-      - PORT=3005
-      - NATS_SERVERS=nats://nats-server:4222
-      - DATABASE_URL=${CART_DATABASE_URL}
+  # cart-ms:
+  #   build: ./cart-ms
+  #   volumes:   
+  #     - ./cart-ms/src:/usr/src/app/src
+  #   ports:
+  #     - "3005:3005"
+  #   command: npm run start:dev
+  #   environment: 
+  #     - PORT=3005
+  #     - NATS_SERVERS=nats://nats-server:4222
+  #     - DATABASE_URL=${CART_DATABASE_URL}
 
   attributes-ms:
     build: ./attributes-ms
@@ -91,5 +91,19 @@ services:
       - PORT=3006
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=${ATTRIBUTES_DATABASE_URL}
+    depends_on:
+      - nats-server
+
+  image-ms:
+    build: ./image-ms
+    volumes:
+      - ./image-ms/src:/usr/src/app/src
+    ports:
+      - "3007:3007"
+    command: npm run start:dev
+    environment:
+      - PORT=3007
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${IMAGES_DATABASE_URL}
     depends_on:
       - nats-server

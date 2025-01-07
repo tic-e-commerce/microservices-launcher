@@ -1,0 +1,2 @@
+export const IMAGE_SERVICE = 'IMAGE_SERVICE';
+export const NATS_SERVICE = 'NATS_SERVICE';
