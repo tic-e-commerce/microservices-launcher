@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { envs } from './config';
 import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
 import { RpcCustomExceptionFilter } from './common';
+import * as bodyParser from 'body-parser';
 
 async function bootstrap() {
   const logger = new Logger('Main-Gateway');
@@ -25,6 +26,15 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
+    }),
+  );
+  app.use(
+    '/api/payments/webhook',
+    bodyParser.raw({
+      type: 'application/json',
+      verify: (req: any, res, buf) => {
+        req.rawBody = buf.toString();
+      },
     }),
   );
 
