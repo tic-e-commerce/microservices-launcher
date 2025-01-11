@@ -1,8 +1,9 @@
 import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { CreateReservationsDto, ReservationItemDto } from './dto/reservation.dto';
 
 @Controller()
 export class ProductsController {
@@ -37,8 +38,44 @@ export class ProductsController {
   }
 
   @MessagePattern('validate_products')
-  async validateProduct(@Payload() data: { ids: number[]; quantity: number }) {
-    const { ids, quantity } = data;
-    return this.productsService.validateProducts(ids, quantity);
+  async validateProducts(
+    @Payload() items: { product_id: number; quantity: number }[],
+  ) {
+    return this.productsService.validateProducts(items);
+  }
+
+  @MessagePattern('create_reservations')
+  async createReservations(
+    @Payload() createReservationsDto: CreateReservationsDto,
+  ) {
+    const { reservations } = createReservationsDto;
+    return this.productsService.createReservations(reservations);
+  }
+
+  @MessagePattern('cancel_reservations')
+  async cancelReservations(
+    @Payload() reservationItemDto: ReservationItemDto[],
+  ) {
+    return this.productsService.cancelReservations(reservationItemDto);
+  }
+
+  @EventPattern('order.processed')
+  async handleOrderProcessed(
+    @Payload()
+    data: {
+      order_id: string;
+      user_id: number;
+      items: { product_id: number; quantity: number; order_id: string }[];
+    },
+  ) {
+    return this.productsService.handleOrderProcessed(data);
+  }
+
+
+  @MessagePattern('get_active_reservations')
+  async getActiveReservations(
+    @Payload() reservationItemDto: ReservationItemDto[],
+  ) {
+    return this.productsService.getActiveReservations(reservationItemDto);
   }
 }

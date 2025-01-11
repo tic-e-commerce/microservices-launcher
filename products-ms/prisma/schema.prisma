@@ -14,19 +14,20 @@ datasource db {
 }
 
 model Product {
-  product_id      Int      @id @default(autoincrement())
-  product_name    String   @db.VarChar(255)
-  description     String?
-  price           Decimal  @db.Decimal(10, 2)
-  stock           Int
-  category_id     Int
-  image_url       String?  @db.VarChar(255)
-  status          Products_Status   @default(ACTIVE)
-  creation_date   DateTime @db.Date
-  update_date     DateTime?
+  product_id    Int             @id @default(autoincrement())
+  product_name  String          @db.VarChar(255)
+  description   String?
+  price         Decimal         @db.Decimal(10, 2)
+  stock         Int
+  category_id   Int
+  image_url     String?         @db.VarChar(255)
+  status        Products_Status @default(ACTIVE)
+  creation_date DateTime        @db.Date
+  update_date   DateTime?
 
   // category        Category @relation(fields: [category_id], references: [category_id])
   // AttributeValue  AttributeValue[]
+  Reservation Reservation[]
 
   @@map("products")
 }
@@ -35,4 +36,27 @@ enum Products_Status {
   ACTIVE
   INACTIVE
   OUT_OF_STOCK
+}
+
+model Reservation {
+  reservation_id Int       @id @default(autoincrement())
+  product_id     Int
+  user_id        Int
+  order_id       String
+  quantity       Int
+  created_at     DateTime  @default(now())
+  expires_at     DateTime?
+  updated_at     DateTime  @updatedAt
+
+  status  Reservation_Status @default(ACTIVE)
+  Product Product            @relation(fields: [product_id], references: [product_id])
+
+  @@map("reservations")
+}
+
+enum Reservation_Status {
+  ACTIVE
+  EXPIRED
+  COMPLETED
+  CANCELLED
 }
