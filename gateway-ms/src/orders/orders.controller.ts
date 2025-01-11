@@ -2,83 +2,68 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Inject,
+  Logger,
   Param,
   ParseUUIDPipe,
-  Patch,
   Post,
-  Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { NATS_SERVICE } from 'src/config';
-import { CreateOrderDto, OrderPaginationDto, StatusDto } from './dto';
-import { firstValueFrom } from 'rxjs';
-import { PaginationDto } from 'src/common';
+import { catchError, firstValueFrom } from 'rxjs';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 
 @Controller('orders')
 export class OrdersController {
+  private readonly logger = new Logger(OrdersController.name);
+
   constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
-  @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    return this.client.send('createOrder', createOrderDto);
+  // @UseGuards(AuthGuard)
+  // @Post()
+  // async createOrder(@Body() createOrderDto: CreateOrderDto) {
+  //   return this.client.send('create_order', createOrderDto).pipe(
+  //     catchError((error) => {
+  //       throw new RpcException(error);  
+  //     }),  
+  //   );
+  // }
+  @UseGuards(AuthGuard)
+  @Post('create')
+  async createOrder(@Body() createOrderDto: CreateOrderDto, @Req() req) {
+    const user = req.user; 
+    createOrderDto.user_id = user.user_id; 
+    return this.client.send('create_order', createOrderDto).pipe(
+      catchError((error) => {
+        throw new RpcException(error);
+      }),
+    );
   }
 
-  @Get()
-  async findAll(@Query() orderPaginationDto: OrderPaginationDto) {
+  @UseGuards(AuthGuard)
+  @Get(':order_id')
+  async getOrder(@Param('order_id', ParseUUIDPipe) order_id: string) {
     try {
-      const orders = await firstValueFrom(
-        this.client.send('findAllOrders', orderPaginationDto),
+      const result = await firstValueFrom(
+        this.client.send('get_order', { order_id }),
       );
-
-      return orders;
+      return result;
     } catch (error) {
       throw new RpcException(error);
     }
   }
 
-  @Get('id/:id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    try {
-      const order = await firstValueFrom(
-        this.client.send('findOneOrder', { id }),
-      );
-
-      return order;
-    } catch (error) {
-      throw new RpcException(error);
-    }
-  }
-
-  @Get(':status')
-  async findAllByStatus(
-    @Param() statusDto: StatusDto,
-    @Query() paginationDto: PaginationDto,
-  ) {
-    try {
-      return this.client.send('findAllOrders', {
-        ...paginationDto,
-        status: statusDto.status,
-      });
-
-      // return order;
-    } catch (error) {
-      throw new RpcException(error);
-    }
-  }
-
-  @Patch(':id')
-  chageStatus(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() statusDto: StatusDto,
-  ) {
-    try {
-      return this.client.send('changeOrderStatus', {
-        id,
-        status: statusDto.status,
-      });
-    } catch (error) {
-      throw new RpcException(error);
-    }
+  @UseGuards(AuthGuard)
+  @Post('cancel')
+  async cancelOrder(@Body('order_id', ParseUUIDPipe) order_id: string) {
+    return this.client.send('cancel_order', { order_id }).pipe(
+      catchError((error) => {
+        throw new RpcException(error);
+      }),
+    );
   }
 }
