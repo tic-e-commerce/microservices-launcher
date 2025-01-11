@@ -1,21 +1,32 @@
 import { Type } from 'class-transformer';
-import { IsNumber, IsPositive, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, IsNumber, IsPositive, IsString } from 'class-validator';
 
 export class OrderItemDto {
-  @IsNumber()
+  @IsInt()
   @IsPositive()
   product_id: number;
 
-  @IsNumber()
+  @IsInt()
+  @IsNotEmpty()
+  // @IsPositive()
+  @Type(() => Number)
+  user_id: number;
+
+  @IsInt()
   @IsPositive()
   quantity: number;
 
-  // @IsNumber()
-  // @IsPositive()
-  // price: number;
+  @IsString()
+  product_name: string;
 
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  public price: number;
+  @IsNumber()
+  @IsPositive()
+  price: number;
+
+  @IsString()
+  image_url: string;
+
+  @IsNumber()
+  @IsPositive()
+  total_cart_price: number;
 }
