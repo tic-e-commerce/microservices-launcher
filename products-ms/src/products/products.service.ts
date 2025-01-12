@@ -1,12 +1,13 @@
-import { HttpStatus, Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { PrismaClient } from '@prisma/client';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { NATS_SERVICE } from 'src/config';
 import { ProductsStatusList } from './enum/products.enum';
-import { Decimal } from '@prisma/client/runtime/library';
 import { ReservationItemDto } from './dto/reservation.dto';
+import { ProductQuantityDto } from './dto/validate-products-request.dto';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class ProductsService extends PrismaClient implements OnModuleInit {
@@ -17,6 +18,15 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
   async onModuleInit() {
     await this.$connect();
     this.logger.log('Connected to the database');
+  }
+
+  // Tarea programada: Ejecutar cada minuto
+  @Cron('*/1 * * * *') // Expresión CRON: cada minuto
+  async handleCron() {
+    this.logger.log(
+      'Executing scheduled task to update expired reservations...',
+    );
+    await this.updateExpiredReservations();
   }
 
   async create(createProductDto: CreateProductDto) {
@@ -98,8 +108,8 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
     }
   }
 
-  async validateProducts(items: { product_id: number; quantity: number }[]) {
-    const quantities = items.reduce(
+  async validateProducts(productQuantityDto: ProductQuantityDto[]) {
+    const quantities = productQuantityDto.reduce(
       (acc, item) => {
         acc[item.product_id] = (acc[item.product_id] || 0) + item.quantity;
         return acc;
@@ -118,9 +128,8 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
         (id) => !products.some((product) => product.product_id === id),
       );
       throw new RpcException({
-        message: `Products not found: ${missingIds.join(', ')}`,
-        status: 400,
-      });
+        message: `Product not found: ${missingIds.join(', ')}`,
+        status: 400,});
     }
 
     for (const product of products) {
@@ -128,11 +137,9 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
       if (product.stock < requested) {
         throw new RpcException({
           message: `Insufficient stock for product ${product.product_id}. Available: ${product.stock}, Requested: ${requested}`,
-          status: 400,
-        });
+          status: 400,});
       }
     }
-
     return products;
   }
 
@@ -146,8 +153,7 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
           cartItems.map((item) => {
             return prisma.product.update({
               where: { product_id: item.product_id },
-              data: { stock: { decrement: item.quantity } },
-            });
+              data: { stock: { decrement: item.quantity } },});
           }),
         );
       });
@@ -188,9 +194,7 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
 
             if (activeReservations.length === 0) {
               await this.client.emit('order.expired', {
-                order_id: reservation.order_id,
-              });
-            }
+                order_id: reservation.order_id,});}
           }
         });
       }
@@ -202,7 +206,6 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
   async createReservations(reservations: ReservationItemDto[]) {
     try {
       await this.validateProducts(reservations);
-
       await this.$transaction(async (prisma) => {
         for (const {
           user_id,
@@ -227,7 +230,7 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
                 order_id,
                 quantity,
                 status: 'ACTIVE',
-                expires_at: new Date(Date.now() + 2 * 60 * 1000),
+                expires_at: new Date(Date.now() + 3 * 60 * 1000),
               },
             });
           }
@@ -235,11 +238,11 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
         await this.updateProductStock(reservations);
       });
 
-      return { message: 'Reservas creadas correctamente.' };
+      return { message: 'Reservations created successfully.' };
     } catch (error) {
       throw new RpcException({
         status: 400,
-        message: `Error creando reservas: ${error.message}`,
+        message: `Error creating reservations: ${error.message}`,
       });
     }
   }
@@ -255,7 +258,7 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
           });
           if (!reservation) {
             throw new RpcException(
-              `No se encontró una reserva activa para el producto ${product_id} en la orden ${order_id}.`,
+              `Active reservation not found for product ${product_id} in order ${order_id}.`,
             );
           }
           await prisma.reservation.update({
@@ -265,9 +268,9 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
         }
       });
 
-      return { message: 'Reservas completadas correctamente.' };
+      return { message: 'Reservations completed successfully.' };
     } catch (error) {
-      throw new RpcException(`Error al completar reservas: ${error.message}`);
+      throw new RpcException(`Error completing reservations: ${error.message}`);
     }
   }
 
@@ -287,10 +290,8 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
 
           await prisma.reservation.update({
             where: { reservation_id: reservation.reservation_id },
-            data: { status: 'CANCELLED' },
-          });
+            data: { status: 'CANCELLED' },});
 
-          // Restaurar el stock
           await prisma.product.update({
             where: { product_id },
             data: { stock: { increment: reservation.quantity } },
@@ -312,19 +313,7 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
     user_id: number;
     items: { product_id: number; quantity: number; order_id: string }[];
   }) {
-    try {
-      // Actualizar el estado de las reservaciones
-      await this.completeReservations(data.items);
-
-      return {
-        message: `Stock y reservaciones actualizadas para la orden ${data.order_id}`,
-      };
-    } catch (error) {
-      throw new RpcException({
-        status: 400,
-        message: `Error procesando la orden ${data.order_id}`,
-      });
-    }
+    return this.completeReservations(data.items);
   }
 
   async getActiveReservations(reservations: ReservationItemDto[]) {
@@ -345,7 +334,6 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
             result.push(reservation);
           }
         }
-
         return result;
       });
 
