@@ -20,16 +20,13 @@ export class CartService extends PrismaClient implements OnModuleInit {
   }
 
   private async verifyProductAvailability(productId: number, quantity: number) {
-    const quantities = { [productId]: quantity };
-
+    const payload = { items: [{ product_id: productId, quantity }] };
     try {
-      await firstValueFrom(
-        this.client.send('validate_products', { ids: [productId], quantities }),
-      );
+      await firstValueFrom(this.client.send('validate_products', payload));
     } catch (error) {
       throw new RpcException({
         status: 400,
-        message: 'Producto no disponible en la cantidad solicitada.',
+        message: error.message,
       });
     }
   }
@@ -65,10 +62,10 @@ export class CartService extends PrismaClient implements OnModuleInit {
               this.client.send('find_one_product', item.product_id),
             );
           } catch (error) {
-            this.logger.warn(
-              `No se pudo obtener información del producto ${item.product_id}: ${error.message}`,
-            );
-            return null;
+            throw new RpcException({
+              status: 400,
+              message: error.message,
+            });
           }
         }),
       );
@@ -80,46 +77,33 @@ export class CartService extends PrismaClient implements OnModuleInit {
 
         return {
           ...item,
-          product_name: productDetail?.product_name || 'Producto desconocido',
+          product_name: productDetail?.product_name || 'Unknown product',
           price: productDetail?.price || 0,
           image_url: productDetail?.image_url || null,
           total_price: item.quantity * (productDetail?.price || 0),
         };
       });
 
-      return result;
+      const subtotal = result.reduce((sum, item) => sum + item.total_price, 0);
+
+      return {
+        cart: result,
+        subtotal: subtotal,
+      };
     } catch (error) {
       throw new RpcException({
         status: 400,
-        message: `Error al obtener el carrito: ${error.message}`,
+        message: error.message,
       });
     }
   }
 
   async update(updateCartDto: UpdateCartDto) {
     const { product_id, user_id, quantity } = updateCartDto;
-
-    if (quantity <= 0) {
-      throw new RpcException({
-        status: 400,
-        message: 'La cantidad debe ser mayor a cero.',
-      });
-    }
-
     await this.verifyProductAvailability(product_id, quantity);
-    const existingCartItem = await this.cartItem.findFirst({
-      where: { user_id, product_id },
-    });
-
-    if (!existingCartItem) {
-      throw new RpcException({
-        status: 400,
-        message: 'Producto no encontrado en el carrito.',
-      });
-    }
-
+    const cartItem = await this.findCartItem(user_id, product_id);
     const updatedCartItem = await this.cartItem.update({
-      where: { cart_item_id: existingCartItem.cart_item_id },
+      where: { cart_item_id: cartItem.cart_item_id },
       data: { quantity },
     });
 
@@ -128,7 +112,36 @@ export class CartService extends PrismaClient implements OnModuleInit {
 
   async remove(cartItemActionDto: CartItemActionDto) {
     const { user_id, product_id } = cartItemActionDto;
+    const cartItem = await this.findCartItem(user_id, product_id);
+    await this.cartItem.delete({
+      where: { cart_item_id: cartItem.cart_item_id },
+    });
+    const updatedCart = await this.cartItem.findMany({
+      where: { user_id },
+      select: {
+        product_id: true,
+        quantity: true,
+      },
+    });
+    return {
+      message: 'Product removed from the cart.',
+      updatedCart,
+    };
+  }
 
+  async clearCart(user_id: number) {
+    try {
+      await this.cartItem.deleteMany({ where: { user_id } });
+      return { message: 'Cart successfully cleared.' };
+    } catch (error) {
+      throw new RpcException({
+        status: 400,
+        message: `Error clearing the cart: ${error.message}`,
+      });
+    }
+  }
+
+  private async findCartItem(user_id: number, product_id: number) {
     const cartItem = await this.cartItem.findFirst({
       where: { user_id, product_id },
       select: { cart_item_id: true },
@@ -137,26 +150,9 @@ export class CartService extends PrismaClient implements OnModuleInit {
     if (!cartItem) {
       throw new RpcException({
         status: 400,
-        message: 'Producto no encontrado en el carrito.',
+        message: 'Product not found in the cart.',
       });
     }
-
-    await this.cartItem.delete({
-      where: { cart_item_id: cartItem.cart_item_id },
-    });
-
-    return { message: 'Producto eliminado del carrito.' };
-  }
-
-  async clearCart(user_id: number) {
-    try {
-      await this.cartItem.deleteMany({ where: { user_id } });
-      return { message: 'Carrito eliminado con éxito.' };
-    } catch (error) {
-      throw new RpcException({
-        status: 400,
-        message: `Error al limpiar el carrito: ${error.message}`,
-      });
-    }
+    return cartItem;
   }
 }

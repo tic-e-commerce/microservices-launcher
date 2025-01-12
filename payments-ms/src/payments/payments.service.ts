@@ -31,9 +31,9 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
 
       // Validar el estado de la orden
       const invalidStatuses = {
-        PAID: 'No se puede procesar el pago para una orden que ya fue pagada.',
-        EXPIRED: 'No se puede procesar el pago para una orden expirada.',
-        CANCELLED: 'No se puede procesar el pago para una orden cancelada.',
+        PAID: 'Payment cannot be processed for an order that has already been paid.',
+        EXPIRED: 'Payment cannot be processed for an expired order.',
+        CANCELLED: 'Payment cannot be processed for a cancelled order.',        
       };
 
       if (invalidStatuses[orderDetails.status]) {
@@ -67,7 +67,6 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
         cancel_url: envs.stripeCancelUrl,
       });
 
-      // Registrar el pago en la base de datos
       await this.payment.create({
         data: {
           order_id,
@@ -87,7 +86,7 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
     } catch (error) {
       throw new RpcException({
         status: 400,
-        message: `Error al crear la sesión de pago: ${error.message}`,
+        message: error.message,
       });
     }
   }
@@ -151,7 +150,7 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
     } catch (error) {
       throw new RpcException({
         status: 400,
-        message: `Error procesando webhook: ${error.message}`,
+        message: error.message,
       });
     }
   }

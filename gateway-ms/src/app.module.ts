@@ -24,6 +24,7 @@ import { UserPreferencesModule } from './user-preferences/user-preferences.modul
     ImageModule,
     OrdersModule,
     UserPreferencesModule,
+    PaymentsModule
   ],
 })
 export class AppModule {}
