@@ -20,16 +20,16 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
 
   async createOrder(createOrderDto: CreateOrderDto) {
     const { user_id } = createOrderDto;
-
     try {
-      const cartItems = await firstValueFrom(
+      const cartResponse = await firstValueFrom(
         this.client.send('findAllCart', { user_id }),
       );
+      const cartItems = cartResponse.cart;
 
       if (!cartItems || cartItems.length === 0) {
         throw new RpcException({
           status: 400,
-          message: 'Usuario no tiene productos en el carrito.',
+          message: 'The user has no products in the cart.',
         });
       }
 
@@ -85,7 +85,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     } catch (error) {
       throw new RpcException({
         status: 400,
-        message: `Error creando la orden: ${error.message}`,
+        message: `Error creating order: ${error.message}`,
       });
     }
   }
@@ -106,19 +106,20 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
   async findOrderById(order_id: string, includeOrderItems = true) {
     const order = await this.order.findUnique({
       where: { order_id },
-      include: includeOrderItems ? { order_items: true } : undefined, //Operación ternaria
+      include: includeOrderItems ? { order_items: true } : undefined,
     });
 
     if (!order) {
-      this.logger.warn(`Order not found: ${order_id}`);
-      throw new RpcException(`Order with ID ${order_id} not found.`);
+      throw new RpcException({
+        status: 404,
+        message: 'Order with ID ${order_id} not found.',
+      });
     }
     return order;
   }
 
   async updateOrderStatus(updateOrderStatusDto: UpdateOrderStatusDto) {
     const { order_id, status } = updateOrderStatusDto;
-
     const updatedOrder = await this.order.update({
       where: { order_id },
       data: { status },
@@ -128,7 +129,6 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       order_id: updatedOrder.order_id,
       status: updatedOrder.status,
     });
-
     return updatedOrder;
   }
 
@@ -143,7 +143,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     if (!order) {
       throw new RpcException({
         status: 404,
-        message: `Orden con ID ${paidOrderDto.order_id} no encontrada.`,
+        message: `Order with ID ${paidOrderDto.order_id} not found.`,
       });
     }
 
@@ -162,7 +162,8 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     if (activeReservations.length !== order.order_items.length) {
       throw new RpcException({
         status: 400,
-        message:'Una o más reservas han expirado. No se puede procesar el pago.',
+        message:
+          'One or more reservations have expired. Payment cannot be processed.',
       });
     }
 
@@ -182,7 +183,6 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       include: { order_items: true },
     });
 
-    // Emitir evento para procesar la orden
     await this.client.emit('order.processed', {
       order_id: updatedOrder.order_id,
       user_id: updatedOrder.user_id,
@@ -198,8 +198,8 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     const order = await this.findOrderById(order_id, true);
 
     const invalidStatuses = {
-      EXPIRED: 'No se puede cancelar una orden expirada.',
-      PAID: 'No se puede cancelar una orden ya pagada.',
+      EXPIRED: 'Cannot cancel an expired order.',
+      PAID: 'Cannot cancel an already paid order.',
     };
 
     if (invalidStatuses[order.status]) {
@@ -214,7 +214,6 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
         product_id: item.product_id,
         user_id: order.user_id,
         quantity: item.quantity,
-
         order_id: item.order_id,
       }));
 
@@ -227,23 +226,23 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
         data: { status: 'CANCELLED' },
       });
 
-      return { message: 'Orden cancelada correctamente.' };
+      return { message: 'Order successfully cancelled.' };
     } catch (error) {
       throw new RpcException({
         status: 400,
-        message: `Error al cancelar la orden: ${error.message}`,
+        message: `Error cancelling order: ${error.message}`,
       });
     }
   }
 
   async handleOrderExpired(order_id: string) {
     try {
-      const order = await this.findOrderById(order_id, false); 
+      const order = await this.findOrderById(order_id, false);
 
       if (order.status === 'PAID') {
         throw new RpcException({
           status: 400,
-          message: 'No se puede marcar como expirada una orden ya pagada.',
+          message: 'Cannot mark a paid order as expired.',
         });
       }
 
@@ -254,7 +253,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     } catch (error) {
       throw new RpcException({
         status: 400,
-        message: `Error al marcar la orden como expirada: ${error.message}`,
+        message: `Error marking order as expired: ${error.message}`,
       });
     }
   }
