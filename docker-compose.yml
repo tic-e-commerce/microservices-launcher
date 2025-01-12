@@ -52,7 +52,7 @@ services:
       - PORT=3003
       - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=${PRODUCTS_DATABASE_URL}
- review-ms:
+  review-ms:
     build: ./review-ms
     volumes:
       - ./review-ms/src:/usr/src/app/src
@@ -65,7 +65,7 @@ services:
       - DATABASE_URL=${REVIEW_DATABASE_URL}
     depends_on:
       - nats-server
- cart-ms:
+  cart-ms:
     build: ./cart-ms
     volumes:
       - ./cart-ms/src:/usr/src/app/src
@@ -104,3 +104,32 @@ services:
       - DATABASE_URL=${IMAGES_DATABASE_URL}
     depends_on:
       - nats-server
+
+  orders-ms:
+    build: ./orders-ms
+    volumes:
+      - ./orders-ms/src:/usr/src/app/src
+    ports:
+      - "3008:3008"
+    command: npm run start:dev
+    environment:
+      - PORT=3008
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=${ORDERS_DATABASE_URL}
+
+  payments-ms:
+    container_name: payments-ms
+    build: ./payments-ms
+    volumes:   
+      - ./payments-ms/src:/usr/src/app/src
+    command: npm run start:dev
+    ports:
+      - 3007:3007
+    environment: 
+      - PORT=3007
+      - NATS_SERVERS=nats://nats-server:4222 
+      - DATABASE_URL=${PAYMENTS_DATABASE_URL}
+      - STRIPE_SECRET=${STRIPE_SECRET}
+      - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL}
+      - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL}
+      - STRIPE_ENDPOINT_SECRET=${STRIPE_ENDPOINT_SECRET}
