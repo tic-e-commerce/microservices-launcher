@@ -4,6 +4,7 @@ import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CreateReservationsDto, ReservationItemDto } from './dto/reservation.dto';
+import { ValidateProductsRequestDto } from './dto/validate-products-request.dto';
 
 @Controller()
 export class ProductsController {
@@ -39,9 +40,12 @@ export class ProductsController {
 
   @MessagePattern('validate_products')
   async validateProducts(
-    @Payload() items: { product_id: number; quantity: number }[],
+      @Payload() validateProductsRequestDto: ValidateProductsRequestDto,
   ) {
-    return this.productsService.validateProducts(items);
+    console.log('Payload recibido:', validateProductsRequestDto);
+      return this.productsService.validateProducts(
+          validateProductsRequestDto.items,
+      );
   }
 
   @MessagePattern('create_reservations')
