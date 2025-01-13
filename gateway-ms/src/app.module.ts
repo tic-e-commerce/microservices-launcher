@@ -10,6 +10,7 @@ import { AttributesModule } from './attributes/attributes.module';
 import { ImageModule } from './image/image.module';
 import { OrdersModule } from './orders/orders.module';
 import { UserPreferencesModule } from './user-preferences/user-preferences.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
