@@ -1,4 +1,5 @@
 steps:
+  # Paso 1: Construir la imagen de Docker
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
@@ -10,11 +11,36 @@ steps:
         '--platform=linux/amd64',
         '.',
       ]
+
+  # Paso 2: Publicar la imagen en Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
         'push',
         'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms',
       ]
+
+  # Paso 3: Actualizar el despliegue con Helm
+  - name: 'alpine/helm:3.10.0'
+    entrypoint: 'sh'
+    args:
+      [
+        '-c',
+        'helm upgrade gateway-ms ./k8s --install --atomic --set image.repository=us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms,image.tag=${COMMIT_SHA} --namespace default',
+      ]
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=tic-backend-gke'
+
 options:
   logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _CLUSTER_NAME: 'tic-backend-gke'
+  _REGION: 'us-central1'
+  _DOCKER_REPO: 'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic'
+
+# Opcional: Configurar activadores
+trigger:
+  event: PUSH
+  branch: main
