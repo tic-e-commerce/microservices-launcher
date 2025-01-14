@@ -20,7 +20,19 @@ steps:
         'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms',
       ]
 
-  # Paso 3: Actualizar el despliegue con Helm
+  # Paso 3: Autenticarse contra el clúster de Kubernetes
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      [
+        'container',
+        'clusters',
+        'get-credentials',
+        'tic-backend-gke',
+        '--region',
+        'us-central1',
+      ]
+
+  # Paso 4: Actualizar el despliegue con Helm
   - name: 'alpine/helm:3.10.0'
     entrypoint: 'sh'
     args:
@@ -28,9 +40,6 @@ steps:
         '-c',
         'helm upgrade gateway-ms ./k8s --install --atomic --set image.repository=us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms,image.tag=${COMMIT_SHA} --namespace default',
       ]
-    env:
-      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
-      - 'CLOUDSDK_CONTAINER_CLUSTER=tic-backend-gke'
 
 options:
   logging: CLOUD_LOGGING_ONLY
