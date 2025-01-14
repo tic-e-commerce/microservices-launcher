@@ -36,8 +36,17 @@ steps:
         'southamerica-east1',
       ]
 
-  # Paso 5: Actualizar el despliegue con Helm
-  - name: 'alpine/helm:3.10.0'
+  # Paso 5: Instalar Helm
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'sh'
+    args:
+      [
+        '-c',
+        'curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash',
+      ]
+
+  # Paso 6: Ejecutar Helm para actualizar el despliegue
+  - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'sh'
     args:
       [
