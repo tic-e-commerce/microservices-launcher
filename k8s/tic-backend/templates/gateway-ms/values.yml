@@ -1,0 +1,3 @@
+image:
+  repository: us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms
+  tag: "latest"

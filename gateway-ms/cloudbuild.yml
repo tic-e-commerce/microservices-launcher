@@ -29,7 +29,7 @@ steps:
         'get-credentials',
         'tic-backend-gke',
         '--region',
-        'us-central1',
+        'southamerica-east1',
       ]
 
   # Paso 4: Actualizar el despliegue con Helm
