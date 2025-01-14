@@ -26,8 +26,8 @@ steps:
       ]
 
   # Paso 4: Actualizar el despliegue con Helm
-  - name: 'alpine/helm:3.10.0'
-    entrypoint: 'sh'
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    entrypoint: 'bash'
     args:
       [
         '-c',
