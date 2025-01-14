@@ -5,7 +5,7 @@ steps:
       [
         'build',
         '-t',
-        'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms',
+        '${_DOCKER_REPO}/gateway-ms',
         '-f',
         'gateway-ms/dockerfile.prod',
         '--platform=linux/amd64',
@@ -14,22 +14,15 @@ steps:
 
   # Paso 2: Publicar la imagen en Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args:
-      [
-        'push',
-        'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms',
-      ]
+    args: ['push', '${_DOCKER_REPO}/gateway-ms']
 
   # Paso 3: Autenticarse contra el clúster de Kubernetes
-  - name: 'gcr.io/cloud-builders/gcloud'
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
+    entrypoint: 'bash'
     args:
       [
-        'container',
-        'clusters',
-        'get-credentials',
-        'tic-backend-gke',
-        '--region',
-        'southamerica-east1',
+        '-c',
+        'gcloud components install gke-gcloud-auth-plugin -q && gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_CLUSTER_REGION}',
       ]
 
   # Paso 4: Actualizar el despliegue con Helm
@@ -38,7 +31,7 @@ steps:
     args:
       [
         '-c',
-        'helm upgrade gateway-ms ./k8s --install --atomic --set image.repository=us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms,image.tag=${COMMIT_SHA} --namespace default',
+        'helm upgrade gateway-ms ./k8s --install --atomic --set image.repository=${_DOCKER_REPO}/gateway-ms,image.tag=${COMMIT_SHA} --namespace default',
       ]
 
 options:
@@ -46,5 +39,5 @@ options:
 
 substitutions:
   _CLUSTER_NAME: 'tic-backend-gke'
-  _REGION: 'us-central1'
+  _CLUSTER_REGION: 'southamerica-east1'
   _DOCKER_REPO: 'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic'
