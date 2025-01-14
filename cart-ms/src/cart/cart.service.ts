@@ -1,197 +1,158 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleInit,
-  Inject,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { NATS_SERVICE } from 'src/config/services';
 import { CreateCartDto } from './common/dto/create-cart.dto';
 import { UpdateCartDto } from './common/dto/update-cart.dto';
 import { firstValueFrom } from 'rxjs';
+import { CartItemActionDto } from './common';
 
 @Injectable()
 export class CartService extends PrismaClient implements OnModuleInit {
   private readonly logger = new Logger(CartService.name);
-
   constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {
     super();
   }
 
   async onModuleInit() {
     await this.$connect();
-    this.logger.log('Base de datos conectada');
+    this.logger.log('Connected to the database');
   }
 
-  private logError(context: string, error: Error) {
-    this.logger.error(`${context}: ${error.message}`, error.stack);
-  }
-
-  private async fetchProductDetails(productId: number) {
+  private async verifyProductAvailability(productId: number, quantity: number) {
+    const payload = { items: [{ product_id: productId, quantity }] };
     try {
-      const product = await firstValueFrom(this.client.send('find_one_product', productId));
-      if (!product) throw new RpcException(`Producto con ID ${productId} no encontrado.`);
-      return {
-        product_id: productId, 
-        product_name: product.product_name,
-        price: Math.round(product.price * 100) / 100,
-        image_url: product.image_url,
-      };
+      await firstValueFrom(this.client.send('validate_products', payload));
     } catch (error) {
-      this.logError(`Error obteniendo detalles del producto ${productId}`, error);
-      throw new RpcException(`Error obteniendo detalles del producto con ID ${productId}`);
+      throw new RpcException({
+        status: 400,
+        message: error.message,
+      });
     }
-  }
-
-  private calculateTotalPrice(items: { price: number; quantity: number }[]): number {
-    return Math.round(
-      items.reduce((sum, item) => sum + item.price * item.quantity, 0) * 100
-    ) / 100;
   }
 
   async create(createCartDto: CreateCartDto) {
-    try {
-      const { product_id, quantity, user_id } = createCartDto;
-      await this.verifyProductAvailability(product_id, quantity);
+    const { product_id, quantity, user_id } = createCartDto;
+    await this.verifyProductAvailability(product_id, quantity);
 
-      const productDetails = await this.fetchProductDetails(product_id);
-      const existingCartItem = await this.cartItem.findFirst({
-        where: { user_id, product_id },
-      });
+    const existingCartItem = await this.cartItem.findFirst({
+      where: { user_id, product_id },
+    });
 
-      const cartItem = existingCartItem
-        ? await this.cartItem.update({
-            where: { id: existingCartItem.id },
-            data: { quantity: existingCartItem.quantity + quantity },
-          })
-        : await this.cartItem.create({
-            data: { user_id, product_id, quantity },
-          });
+    const cartItem = existingCartItem
+      ? await this.cartItem.update({
+          where: { cart_item_id: existingCartItem.cart_item_id },
+          data: { quantity: existingCartItem.quantity + quantity },
+        })
+      : await this.cartItem.create({
+          data: { user_id, product_id, quantity },
+        });
 
-      return {
-        ...cartItem,
-        ...productDetails,
-        total_cart_price: this.calculateTotalPrice([
-          { price: productDetails.price, quantity: cartItem.quantity },
-        ]),
-      };
-    } catch (error) {
-      this.logError('Error creando producto en el carrito', error);
-      throw new RpcException('Error creando producto en el carrito.');
-    }
+    return cartItem;
   }
 
   async findAll(user_id: number) {
     try {
-      const cartItems = await this.cartItem.groupBy({
-        by: ['product_id', 'user_id'],
-        _sum: { quantity: true },
-        where: { user_id },
-      });
+      const cartItems = await this.cartItem.findMany({ where: { user_id } });
 
       const productDetails = await Promise.all(
-        cartItems.map((item) => this.fetchProductDetails(item.product_id))
+        cartItems.map(async (item) => {
+          try {
+            return await firstValueFrom(
+              this.client.send('find_one_product', item.product_id),
+            );
+          } catch (error) {
+            throw new RpcException({
+              status: 400,
+              message: error.message,
+            });
+          }
+        }),
       );
 
-      const consolidatedCart = cartItems.map((item) => {
+      const result = cartItems.map((item) => {
         const productDetail = productDetails.find(
-          (product) => product.product_id === item.product_id
+          (product) => product?.product_id === item.product_id,
         );
+
         return {
-          product_id: item.product_id,
-          user_id: item.user_id,
-          quantity: item._sum.quantity,
-          ...productDetail,
-          total_cart_price: this.calculateTotalPrice([
-            { price: productDetail?.price || 0, quantity: item._sum.quantity },
-          ]),
+          ...item,
+          product_name: productDetail?.product_name || 'Unknown product',
+          price: productDetail?.price || 0,
+          image_url: productDetail?.image_url || null,
+          total_price: item.quantity * (productDetail?.price || 0),
         };
       });
 
-      return { cart: consolidatedCart };
+      const subtotal = result.reduce((sum, item) => sum + item.total_price, 0);
+
+      return {
+        cart: result,
+        subtotal: subtotal,
+      };
     } catch (error) {
-      this.logError('Error obteniendo el carrito consolidado', error);
-      throw new RpcException('Error obteniendo el carrito consolidado.');
+      throw new RpcException({
+        status: 400,
+        message: error.message,
+      });
     }
   }
 
   async update(updateCartDto: UpdateCartDto) {
-    try {
-      const { user_id, product_id, quantity } = updateCartDto;
-      const existingCartItem = await this.cartItem.findFirst({
-        where: { user_id, product_id },
-      });
-      if (!existingCartItem) throw new RpcException('Producto no encontrado en el carrito.');
+    const { product_id, user_id, quantity } = updateCartDto;
+    await this.verifyProductAvailability(product_id, quantity);
+    const cartItem = await this.findCartItem(user_id, product_id);
+    const updatedCartItem = await this.cartItem.update({
+      where: { cart_item_id: cartItem.cart_item_id },
+      data: { quantity },
+    });
 
-      return await this.cartItem.update({
-        where: { id: existingCartItem.id },
-        data: { quantity },
-      });
-    } catch (error) {
-      this.logError('Error actualizando producto en el carrito', error);
-      throw new RpcException('Error actualizando producto en el carrito.');
-    }
+    return updatedCartItem;
   }
 
-  async remove(user_id: number, product_id: number) {
-    try {
-      const cartItem = await this.cartItem.findFirst({
-        where: { user_id, product_id },
-      });
-      if (!cartItem) throw new RpcException('Producto no encontrado en el carrito.');
-
-      await this.cartItem.delete({ where: { id: cartItem.id } });
-      return { message: 'Producto eliminado del carrito.' };
-    } catch (error) {
-      this.logError('Error eliminando producto del carrito', error);
-      throw new RpcException('Error eliminando producto del carrito.');
-    }
-  }
-
-  async calculateTotal(user_id: number): Promise<number> {
-    try {
-      const cartItems = await this.cartItem.findMany({ where: { user_id } });
-      const productDetails = await Promise.all(
-        cartItems.map((item) => this.fetchProductDetails(item.product_id))
-      );
-
-      const total = this.calculateTotalPrice(
-        cartItems.map((item, index) => ({
-          price: productDetails[index]?.price || 0,
-          quantity: item.quantity,
-        }))
-      );
-
-      return total;
-    } catch (error) {
-      this.logError(`Error calculando el total del carrito del usuario ${user_id}`, error);
-      throw new RpcException('Error calculando el total del carrito.');
-    }
+  async remove(cartItemActionDto: CartItemActionDto) {
+    const { user_id, product_id } = cartItemActionDto;
+    const cartItem = await this.findCartItem(user_id, product_id);
+    await this.cartItem.delete({
+      where: { cart_item_id: cartItem.cart_item_id },
+    });
+    const updatedCart = await this.cartItem.findMany({
+      where: { user_id },
+      select: {
+        product_id: true,
+        quantity: true,
+      },
+    });
+    return {
+      message: 'Product removed from the cart.',
+      updatedCart,
+    };
   }
 
   async clearCart(user_id: number) {
     try {
-      const deletedItems = await this.cartItem.deleteMany({ where: { user_id } });
-      this.logger.log(`Carrito vaciado para el usuario con ID: ${user_id}`);
-      return deletedItems;
+      await this.cartItem.deleteMany({ where: { user_id } });
+      return { message: 'Cart successfully cleared.' };
     } catch (error) {
-      this.logError(`Error vaciando el carrito del usuario ${user_id}`, error);
-      throw new RpcException('Error vaciando el carrito.');
+      throw new RpcException({
+        status: 400,
+        message: `Error clearing the cart: ${error.message}`,
+      });
     }
   }
 
-  async verifyProductAvailability(productId: number, quantity: number) {
-    try {
-      const isAvailable = await this.client
-        .send<boolean>('validate_products', { ids: [productId], quantity })
-        .toPromise();
+  private async findCartItem(user_id: number, product_id: number) {
+    const cartItem = await this.cartItem.findFirst({
+      where: { user_id, product_id },
+      select: { cart_item_id: true },
+    });
 
-      if (!isAvailable) throw new RpcException('Producto no disponible en la cantidad solicitada.');
-      return isAvailable;
-    } catch (error) {
-      this.logError(`Error verificando disponibilidad del producto ${productId}`, error);
-      throw new RpcException('Error verificando disponibilidad del producto.');
+    if (!cartItem) {
+      throw new RpcException({
+        status: 400,
+        message: 'Product not found in the cart.',
+      });
     }
+    return cartItem;
   }
 }

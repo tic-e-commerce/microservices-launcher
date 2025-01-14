@@ -13,46 +13,53 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum OrderStatus {
+enum order_status {
   PENDING
   PAID
   DELIVERED
   CANCELLED
+  EXPIRED
 }
 
-model Order {
-  id               String      @id @default(uuid())
+model order {
+  order_id         String       @id @default(uuid())
+  user_id          Int
   total_amount     Float
   total_items      Int
-  status           OrderStatus @default(PENDING)
-  paid             Boolean     @default(false)
+  status           order_status @default(PENDING)
+  paid             Boolean      @default(false)
   paid_at          DateTime?
   stripe_charge_id String?
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  OrderItem    OrderItem[]
-  OrderReceipt OrderReceipt?
+  order_items   order_item[]
+  order_receipt order_receipt?
 }
 
-model OrderItem {
-  id         String  @id @default(uuid())
-  product_id Int
-  quantity   Int
-  price      Decimal @db.Decimal(10, 2)
+model order_item {
+  order_item_id String  @id @default(uuid())
+  order_id      String
+  product_id    Int
+  quantity      Int
+  price         Decimal @db.Decimal(10, 2)
+  product_name  String
+  image_url     String?
 
-  Order    Order?  @relation(fields: [order_id], references: [id])
-  order_id String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  order order @relation(fields: [order_id], references: [order_id])
 }
 
-model OrderReceipt {
-  id       String @id @default(uuid())
-  order    Order  @relation(fields: [order_id], references: [id])
-  order_id String @unique
-
+model order_receipt {
+  id          String @id @default(uuid())
+  order_id    String @unique
   receipt_url String
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  order order @relation(fields: [order_id], references: [order_id])
 }

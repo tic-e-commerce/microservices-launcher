@@ -14,11 +14,14 @@ datasource db {
 }
 
 model CartItem {
-  id         Int     @id @default(autoincrement())
-  quantity   Int
-  product_id Int
-  user_id    Int
+  cart_item_id Int      @id @default(autoincrement())
+  quantity     Int
+  product_id   Int
+  user_id      Int
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
 
   @@map("cart_items")
 }
+
 

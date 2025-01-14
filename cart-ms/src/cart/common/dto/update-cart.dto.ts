@@ -1,12 +1,13 @@
 import { IsInt, IsNotEmpty, IsOptional, IsPositive } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateCartDto {
   @IsInt()
   @IsOptional()
-  id?: number; 
+  cart_item_id?: number; 
 
-  @IsInt()
   @IsNotEmpty()
+  @Type(() => Number)
   user_id: number;
 
   @IsInt()

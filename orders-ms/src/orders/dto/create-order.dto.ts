@@ -1,12 +1,8 @@
-
-import { ArrayMinSize, IsArray, ValidateNested } from "class-validator";
-import { OrderItemDto } from "./order-item.dto";
 import { Type } from "class-transformer";
+import { IsNotEmpty } from "class-validator";
 
 export class CreateOrderDto {
-    @IsArray()
-    @ArrayMinSize(1)
-    @ValidateNested({each: true})
-    @Type( () => OrderItemDto )
-    items: OrderItemDto[]
+    @IsNotEmpty()
+    @Type(() => Number)
+    user_id: number;
 }

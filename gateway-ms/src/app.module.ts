@@ -7,8 +7,10 @@ import { CartModule } from './cart/cart.module';
 import { ProfileModule } from './profile/profile.module';
 import { ReviewModule } from './review/review.module';
 import { AttributesModule } from './attributes/attributes.module';
+import { ImageModule } from './image/image.module';
 import { OrdersModule } from './orders/orders.module';
 import { UserPreferencesModule } from './user-preferences/user-preferences.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -20,8 +22,10 @@ import { UserPreferencesModule } from './user-preferences/user-preferences.modul
     ProfileModule,
     ReviewModule,
     AttributesModule,
+    ImageModule,
     OrdersModule,
     UserPreferencesModule,
+    PaymentsModule
   ],
 })
 export class AppModule {}
