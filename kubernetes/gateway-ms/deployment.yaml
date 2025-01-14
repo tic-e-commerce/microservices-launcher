@@ -1,0 +1,232 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    autopilot.gke.io/resource-adjustment: >-
+      {"input":{"containers":[{"limits":{"cpu":"250m","memory":"256Mi"},"requests":{"cpu":"100m","memory":"128Mi"},"name":"gateway-ms"}]},"output":{"containers":[{"limits":{"cpu":"250m","ephemeral-storage":"1Gi","memory":"256Mi"},"requests":{"cpu":"100m","ephemeral-storage":"1Gi","memory":"128Mi"},"name":"gateway-ms"}]},"modified":true}
+    autopilot.gke.io/warden-version: 3.0.42
+    meta.helm.sh/release-name: tic-backend
+    meta.helm.sh/release-namespace: default
+  labels:
+    app: gateway-ms
+  managedFields:
+    - apiVersion: apps/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        "f:metadata":
+          "f:annotations":
+            .: {}
+            "f:meta.helm.sh/release-name": {}
+            "f:meta.helm.sh/release-namespace": {}
+          "f:labels":
+            .: {}
+            "f:app": {}
+            "f:app.kubernetes.io/managed-by": {}
+        "f:spec":
+          "f:progressDeadlineSeconds": {}
+          "f:replicas": {}
+          "f:revisionHistoryLimit": {}
+          "f:selector": {}
+          "f:strategy":
+            "f:rollingUpdate":
+              .: {}
+              "f:maxSurge": {}
+              "f:maxUnavailable": {}
+            "f:type": {}
+          "f:template":
+            "f:metadata":
+              "f:labels":
+                .: {}
+                "f:app": {}
+            "f:spec":
+              "f:containers":
+                'k:{"name":"gateway-ms"}':
+                  .: {}
+                  "f:env":
+                    .: {}
+                    'k:{"name":"NATS_SERVERS"}':
+                      .: {}
+                      "f:name": {}
+                      "f:value": {}
+                    'k:{"name":"PORT"}':
+                      .: {}
+                      "f:name": {}
+                      "f:value": {}
+                  "f:image": {}
+                  "f:imagePullPolicy": {}
+                  "f:name": {}
+                  "f:resources":
+                    .: {}
+                    "f:limits":
+                      .: {}
+                      "f:cpu": {}
+                      "f:memory": {}
+                    "f:requests":
+                      .: {}
+                      "f:cpu": {}
+                      "f:memory": {}
+                  "f:terminationMessagePath": {}
+                  "f:terminationMessagePolicy": {}
+              "f:dnsPolicy": {}
+              "f:restartPolicy": {}
+              "f:schedulerName": {}
+              "f:securityContext": {}
+              "f:terminationGracePeriodSeconds": {}
+      manager: helm
+      operation: Update
+      time: "2025-01-03T19:16:07Z"
+    - apiVersion: apps/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        "f:metadata":
+          "f:annotations":
+            "f:deployment.kubernetes.io/revision": {}
+        "f:status":
+          "f:availableReplicas": {}
+          "f:conditions":
+            .: {}
+            'k:{"type":"Available"}':
+              .: {}
+              "f:lastTransitionTime": {}
+              "f:lastUpdateTime": {}
+              "f:message": {}
+              "f:reason": {}
+              "f:status": {}
+              "f:type": {}
+            'k:{"type":"Progressing"}':
+              .: {}
+              "f:lastTransitionTime": {}
+              "f:lastUpdateTime": {}
+              "f:message": {}
+              "f:reason": {}
+              "f:status": {}
+              "f:type": {}
+          "f:observedGeneration": {}
+          "f:readyReplicas": {}
+          "f:replicas": {}
+          "f:updatedReplicas": {}
+      manager: kube-controller-manager
+      operation: Update
+      subresource: status
+      time: "2025-01-11T06:14:53Z"
+  name: gateway-ms
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway-ms
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: gateway-ms
+    spec:
+      containers:
+        - env:
+            - name: PORT
+              value: "3000"
+            - name: NATS_SERVERS
+              value: "nats://nats"
+          image: >-
+            us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms
+          imagePullPolicy: Always
+          name: gateway-ms
+          resources:
+            limits:
+              cpu: 250m
+              ephemeral-storage: 1Gi
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              ephemeral-storage: 1Gi
+              memory: 128Mi
+          securityContext:
+            capabilities:
+              drop:
+                - NET_RAW
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      tolerations:
+        - effect: NoSchedule
+          key: kubernetes.io/arch
+          operator: Equal
+          value: amd64
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    cloud.google.com/neg: '{"ingress":true}'
+    cloud.google.com/neg-status: >-
+      {"network_endpoint_groups":{"3000":"k8s1-35e5e183-default-gateway-ms-3000-cfbbd1dd"},"zones":["southamerica-east1-c"]}
+    meta.helm.sh/release-name: tic-backend
+    meta.helm.sh/release-namespace: default
+  labels:
+    app: gateway-ms
+  managedFields:
+    - apiVersion: v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        "f:metadata":
+          "f:annotations":
+            .: {}
+            "f:meta.helm.sh/release-name": {}
+            "f:meta.helm.sh/release-namespace": {}
+          "f:labels":
+            .: {}
+            "f:app": {}
+            "f:app.kubernetes.io/managed-by": {}
+        "f:spec":
+          "f:externalTrafficPolicy": {}
+          "f:internalTrafficPolicy": {}
+          "f:ports":
+            .: {}
+            'k:{"port":3000,"protocol":"TCP"}':
+              .: {}
+              "f:name": {}
+              "f:port": {}
+              "f:protocol": {}
+              "f:targetPort": {}
+          "f:selector": {}
+          "f:sessionAffinity": {}
+          "f:type": {}
+      manager: helm
+      operation: Update
+      time: "2025-01-03T19:16:07Z"
+    - apiVersion: v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        "f:metadata":
+          "f:annotations":
+            "f:cloud.google.com/neg-status": {}
+      manager: glbc
+      operation: Update
+      subresource: status
+      time: "2025-01-03T19:30:27Z"
+  name: gateway-ms
+  namespace: default
+spec:
+  clusterIP: 34.118.229.99
+  clusterIPs:
+    - 34.118.229.99
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - name: "3000"
+      nodePort: 31370
+      port: 3000
+      protocol: TCP
+      targetPort: 3000
+  selector:
+    app: gateway-ms
+  sessionAffinity: None
+  type: NodePort
