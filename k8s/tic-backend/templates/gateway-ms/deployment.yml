@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  creationTimestamp: null
   labels:
     app: gateway-ms
   name: gateway-ms
@@ -9,14 +10,16 @@ spec:
   selector:
     matchLabels:
       app: gateway-ms
+  strategy: {}
   template:
     metadata:
+      creationTimestamp: null
       labels:
         app: gateway-ms
     spec:
       containers:
-        - name: gateway-ms
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        - image: us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms
+          name: gateway-ms
           env:
             - name: PORT
               value: "3000"
