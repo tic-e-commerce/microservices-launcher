@@ -9,7 +9,7 @@ steps:
       [
         'build',
         '-t',
-        'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms:${_COMMIT_SHA}',
+        'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms:${COMMIT_SHA}',
         '-f',
         'gateway-ms/dockerfile.prod',
         '--platform=linux/amd64',
@@ -21,7 +21,7 @@ steps:
     args:
       [
         'push',
-        'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms:${_COMMIT_SHA}',
+        'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms:${COMMIT_SHA}',
       ]
 
   # Paso 3: Instalar el plugin gke-gcloud-auth-plugin
