@@ -1,0 +1,12 @@
+gateway-ms:
+  enabled: true
+  image:
+    repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms"
+    tag: "latest"
+
+auth-ms:
+  enabled: true
+  image:
+    repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/auth-ms"
+    tag: "latest"
+  frontendUrl: "http://localhost:3000"

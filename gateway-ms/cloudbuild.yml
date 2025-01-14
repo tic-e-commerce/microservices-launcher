@@ -20,5 +20,35 @@ steps:
         'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms',
       ]
 
+  # Paso 3: Instalar el plugin gke-gcloud-auth-plugin
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: ['components', 'install', 'gke-gcloud-auth-plugin']
+
+  # Paso 4: Autenticarse contra el clúster de Kubernetes
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      [
+        'container',
+        'clusters',
+        'get-credentials',
+        'tic-backend-gke',
+        '--region',
+        'southamerica-east1',
+      ]
+
+  # Paso 5: Instalar Helm y ejecutar el comando Helm
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'sh'
+    args:
+      [
+        '-c',
+        'curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash && helm upgrade tic-backend ./k8s/tic-backend --install --atomic --set gateway-ms.image.repository=us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms,gateway-ms.image.tag=${COMMIT_SHA} --namespace default',
+      ]
+
 options:
   logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _CLUSTER_NAME: 'tic-backend-gke'
+  _REGION: 'southamerica-east1'
+  _DOCKER_REPO: 'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic'

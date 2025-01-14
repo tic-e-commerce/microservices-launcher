@@ -1,7 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  creationTimestamp: null
   labels:
     app: auth-ms
   name: auth-ms
@@ -10,15 +9,13 @@ spec:
   selector:
     matchLabels:
       app: auth-ms
-  strategy: {}
   template:
     metadata:
-      creationTimestamp: null
       labels:
         app: auth-ms
     spec:
       containers:
-        - image: us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/auth-ms
+        - image: '{{ index .Values "auth-ms" "image" "repository" }}:{{ index .Values "auth-ms" "image" "tag" }}'
           name: auth-ms
           env:
             - name: PORT
@@ -46,7 +43,7 @@ spec:
                   name: auth-secrets
                   key: email
             - name: FRONTEND_URL
-              value: "http://localhost:3000"
+              value: "{{ index .Values "auth-ms" "frontendUrl" }}"
           resources:
             requests:
               memory: "128Mi"
@@ -54,4 +51,3 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "250m"
-status: {}
