@@ -17,12 +17,12 @@ steps:
     args: ['push', '${_DOCKER_REPO}/gateway-ms']
 
   # Paso 3: Autenticarse contra el clúster de Kubernetes
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     entrypoint: 'bash'
     args:
       [
         '-c',
-        'gcloud components install gke-gcloud-auth-plugin -q && gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_CLUSTER_REGION}',
+        'gcloud container clusters get-credentials ${_CLUSTER_NAME} --region ${_CLUSTER_REGION}',
       ]
 
   # Paso 4: Actualizar el despliegue con Helm
