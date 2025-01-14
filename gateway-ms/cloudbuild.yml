@@ -1,4 +1,8 @@
 steps:
+  # Paso 0: Configurar las variables de entorno
+  - name: 'ubuntu'
+    entrypoint: 'bash'
+    args: ['-c', 'echo "COMMIT_SHA=${COMMIT_SHA}"']
   # Paso 1: Construir la imagen de Docker
   - name: 'gcr.io/cloud-builders/docker'
     args:
