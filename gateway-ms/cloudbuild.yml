@@ -31,7 +31,7 @@ steps:
     args:
       [
         '-c',
-        'helm upgrade gateway-ms ./k8s --install --atomic --set image.repository=${_DOCKER_REPO}/gateway-ms,image.tag=${COMMIT_SHA} --namespace default',
+        'curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash && helm upgrade gateway-ms ./k8s --install --atomic --set image.repository=${_DOCKER_REPO}/gateway-ms,image.tag=${COMMIT_SHA} --namespace default',
       ]
 
 options:
