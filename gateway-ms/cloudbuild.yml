@@ -36,22 +36,13 @@ steps:
         'southamerica-east1',
       ]
 
-  # Paso 5: Instalar Helm
+  # Paso 5: Instalar Helm y ejecutar el comando Helm
   - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'sh'
     args:
       [
         '-c',
-        'curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash',
-      ]
-
-  # Paso 6: Ejecutar Helm para actualizar el despliegue
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'sh'
-    args:
-      [
-        '-c',
-        'helm upgrade gateway-ms ./k8s --install --atomic --set image.repository=us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms,image.tag=${COMMIT_SHA} --namespace default',
+        'curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash && helm upgrade gateway-ms ./k8s --install --atomic --set image.repository=us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms,image.tag=${COMMIT_SHA} --namespace default',
       ]
 
 options:
