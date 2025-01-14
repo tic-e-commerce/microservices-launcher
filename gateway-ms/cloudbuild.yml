@@ -42,7 +42,7 @@ steps:
     args:
       [
         '-c',
-        'curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash && helm upgrade gateway-ms ./k8s --install --atomic --set image.repository=us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms,image.tag=${COMMIT_SHA} --namespace default',
+        'curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash && helm upgrade gateway-ms ./k8s/tic-backend --install --atomic --set image.repository=us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/gateway-ms,image.tag=${COMMIT_SHA} --namespace default',
       ]
 
 options:
