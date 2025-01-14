@@ -39,8 +39,3 @@ substitutions:
   _CLUSTER_NAME: 'tic-backend-gke'
   _REGION: 'us-central1'
   _DOCKER_REPO: 'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic'
-
-# Opcional: Configurar activadores
-trigger:
-  event: PUSH
-  branch: main
