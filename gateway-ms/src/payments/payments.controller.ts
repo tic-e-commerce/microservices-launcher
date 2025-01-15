@@ -75,6 +75,7 @@ export class PaymentsController {
 
   @Get('health')
   async checkHealth() {
+    console.log('Checking health of payments service');
     return await firstValueFrom(this.client.send('payments.health', {}));
   }
 }
