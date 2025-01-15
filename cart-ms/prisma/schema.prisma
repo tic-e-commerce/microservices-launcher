@@ -24,4 +24,22 @@ model CartItem {
   @@map("cart_items")
 }
 
+/**
+ * Modelo de carrito de compras nuevo
+ */
+model Cart {
+  cart_id         Int      @id @default(autoincrement())
+  user_id         Int      @unique
+  shipping_method ShippingMethod     @default(STANDARD)
+  shipping_cost   Float?   @default(3.99)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 
+  @@map("carts")
+}
+
+enum ShippingMethod {
+  STANDARD
+  EXPRESS
+  STORE
+}

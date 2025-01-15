@@ -33,7 +33,7 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
       const invalidStatuses = {
         PAID: 'Payment cannot be processed for an order that has already been paid.',
         EXPIRED: 'Payment cannot be processed for an expired order.',
-        CANCELLED: 'Payment cannot be processed for a cancelled order.',        
+        CANCELLED: 'Payment cannot be processed for a cancelled order.',
       };
 
       if (invalidStatuses[orderDetails.status]) {
@@ -55,6 +55,24 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
         quantity: item.quantity,
       }));
 
+      // Incluir el costo de envío como un line item adicional
+      const shipping_cost = orderDetails.shipping_cost || 0.0;
+      if (shipping_cost > 0) {
+        lineItems.push({
+          price_data: {
+            currency,
+            product_data: {
+              name: 'Shipping Cost',
+              description: 'This is a fixed fee for shipping your order.',
+            },
+            unit_amount: Math.round(shipping_cost * 100),
+            
+          },
+          quantity: 1, 
+        });
+      }
+
+      
       // Crear la sesión de pago en Stripe
       const session = await this.stripe.checkout.sessions.create({
         payment_intent_data: {

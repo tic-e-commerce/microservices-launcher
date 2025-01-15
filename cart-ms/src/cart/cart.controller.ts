@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { CartService } from './cart.service';
 import {
@@ -10,6 +10,7 @@ import {
 
 @Controller()
 export class CartController {
+  private readonly logger = new Logger(CartController.name);
   constructor(private readonly cartService: CartService) {}
 
   @MessagePattern('createCart')
@@ -26,6 +27,13 @@ export class CartController {
   async update(@Payload() updateCartDto: UpdateCartDto) {
     return this.cartService.update(updateCartDto);
   }
+  // @MessagePattern('updateCart')
+  // async update(@Payload() payload: any) {
+  //   const { user_id, product_id, quantity } = payload;
+
+  //   // Llamar al servicio pasando todos los parámetros necesarios
+  //   return this.cartService.update({ user_id, product_id, quantity });
+  // }
 
   @MessagePattern('removeCart')
   async remove(@Payload() cartItemActionDto: CartItemActionDto) {
@@ -34,6 +42,21 @@ export class CartController {
 
   @EventPattern('order.processed')
   async handleOrderProcessed(@Payload() cartClearEventDto: CartClearEventDto) {
-    return this.cartService.clearCart(cartClearEventDto.user_id);
+    return this.cartService.clearCart(cartClearEventDto.user_id); 
   }
+
+
+
+
+
+  @MessagePattern('shippingCart')
+  async updateShippingMethod(@Payload() payload: { user_id: number; shipping_method: 'STANDARD' | 'EXPRESS' | 'STORE' }) {
+    const { user_id, shipping_method } = payload;
+
+    this.logger.log(`Updating shipping method for user ${user_id} to ${shipping_method}`);
+    
+    // Llamar al servicio para actualizar el método de envío
+    return await this.cartService.updateShippingMethod(user_id, shipping_method);
+  }
+
 }

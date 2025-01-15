@@ -15,7 +15,7 @@ export class UpdateCartDto {
   product_id: number;
 
   @IsInt()
-  @IsPositive()
+  @IsPositive() 
   @IsNotEmpty()
   quantity: number;
 }

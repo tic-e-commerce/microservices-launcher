@@ -24,7 +24,7 @@ export class OrdersController {
   constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
   // @UseGuards(AuthGuard)
-  // @Post()
+  // @Post('create')
   // async createOrder(@Body() createOrderDto: CreateOrderDto) {
   //   return this.client.send('create_order', createOrderDto).pipe(
   //     catchError((error) => {
