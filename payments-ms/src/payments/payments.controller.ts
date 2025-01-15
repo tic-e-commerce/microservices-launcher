@@ -28,6 +28,6 @@ export class PaymentsController {
 
   @MessagePattern('payments.health')
   checkHealth() {
-    return { status: 'ok Gaby' };
+    return { status: 'ok Gaby test' };
   }
 }
