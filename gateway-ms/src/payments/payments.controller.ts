@@ -73,9 +73,9 @@ export class PaymentsController {
     });
   }
 
-  @Get('health')
+  @Get('deploy')
   async checkHealth() {
     console.log('Checking health of payments service');
-    return await firstValueFrom(this.client.send('payments.health', {}));
+    return await firstValueFrom(this.client.send('payments.deploy', {}));
   }
 }

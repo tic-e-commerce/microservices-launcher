@@ -26,7 +26,7 @@ export class PaymentsController {
     }
   }
 
-  @MessagePattern('payments.health')
+  @MessagePattern('payments.deploy')
   checkHealth() {
     return { status: 'ok Gaby test' };
   }
