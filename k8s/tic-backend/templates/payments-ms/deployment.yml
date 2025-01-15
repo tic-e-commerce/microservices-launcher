@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: payments-ms
+  name: payments-ms
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payments-ms
+  template:
+    metadata:
+      labels:
+        app: payments-ms
+    spec:
+      containers:
+        - image: '{{ index .Values "payments-ms" "image" "repository" }}:{{ index .Values "payments-ms" "image" "tag" }}'
+          name: payments-ms
+          env:
+            - name: PORT
+              value: "3000"
+            - name: NATS_SERVERS
+              value: "nats://nats:4222"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: payments-secrets
+                  key: database_url
+            - name: STRIPE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: payments-secrets
+                  key: stripe_secret
+            - name: STRIPE_ENDPOINT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: payments-secrets
+                  key: stripe_endpoint_secret
+            - name: STRIPE_SUCCESS_URL
+              value: "{{ index .Values "payments-ms" "frontendUrlSuccess" }}"
+            - name: STRIPE_CANCEL_URL
+              value: "{{ index .Values "payments-ms" "frontendUrlCancel" }}"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"

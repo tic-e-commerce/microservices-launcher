@@ -10,3 +10,11 @@ auth-ms:
     repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/auth-ms"
     tag: "latest"
   frontendUrl: "http://localhost:3000"
+
+payments-ms:
+  enabled: true
+  image:
+    repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/payments-ms"
+    tag: "latest"
+  frontendUrlSuccess: "http://localhost:3000/success"
+  frontendUrlCancel: "http://localhost:3000/cancel"
