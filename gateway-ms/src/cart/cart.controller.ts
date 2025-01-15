@@ -24,7 +24,7 @@ export class CartController {
 
   constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @Post()
   async create(@Body() createCartDto: CreateCartDto) {
     return this.client.send('createCart', createCartDto).pipe(
@@ -35,7 +35,7 @@ export class CartController {
   }
 
   
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @Get(':user_id')
   async findAll(@Param('user_id', ParseIntPipe) user_id: number) {
     return this.client.send('findAllCart', { user_id }).pipe(
@@ -45,7 +45,7 @@ export class CartController {
     );
   }
 
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @Patch(':user_id/:product_id')
   async update(
     @Param('user_id', ParseIntPipe) user_id: number,
@@ -54,6 +54,8 @@ export class CartController {
   ) {
     try {
       const updatePayload = { ...updateCartDto, user_id, product_id };
+      console.log('Payload enviado al microservicio:', updatePayload);
+
       const response = await firstValueFrom(
         this.client.send('updateCart', updatePayload),
       );
@@ -63,7 +65,7 @@ export class CartController {
     }
   }
 
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @Delete(':user_id/:product_id')
   async remove(
     @Param('user_id', ParseIntPipe) user_id: number,
@@ -78,4 +80,18 @@ export class CartController {
       throw new RpcException(error);
     }
   }
+
+
+  // @UseGuards(AuthGuard)
+  @Post('shipping-method')
+  async setShippingMethod(
+    @Body() payload: { user_id: number; shipping_method: 'STANDARD' | 'EXPRESS' | 'STORE' },
+  ) {
+    return this.client.send('shippingCart', payload).pipe(
+      catchError((error) => {
+        throw new RpcException(error);
+      }),
+    );
+  }
+  
 }
