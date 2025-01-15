@@ -72,4 +72,9 @@ export class PaymentsController {
       message: 'Payment cancelled',
     });
   }
+
+  @Get('health')
+  async checkHealth() {
+    return await firstValueFrom(this.client.send('payments.health', {}));
+  }
 }

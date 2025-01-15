@@ -25,4 +25,9 @@ export class PaymentsController {
       throw error;
     }
   }
+
+  @MessagePattern('payments.health')
+  checkHealth() {
+    return { status: 'ok Gaby' };
+  }
 }
