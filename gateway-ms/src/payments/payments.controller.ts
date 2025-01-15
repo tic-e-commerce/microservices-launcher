@@ -23,6 +23,12 @@ export class PaymentsController {
 
   constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
+  @Get('deploy')
+  async checkHealth() {
+    console.log('Checking health of payments service');
+    return await firstValueFrom(this.client.send('payments.deploy', {}));
+  }
+
   @UseGuards(AuthGuard)
   @Post('create-payment-session')
   async createPaymentSession(@Body() paymentSessionDto: PaymentSessionDto) {
@@ -71,11 +77,5 @@ export class PaymentsController {
       ok: false,
       message: 'Payment cancelled',
     });
-  }
-
-  @Get('deploy')
-  async checkHealth() {
-    console.log('Checking health of payments service');
-    return await firstValueFrom(this.client.send('payments.deploy', {}));
   }
 }

@@ -9,6 +9,11 @@ export class PaymentsController {
 
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  @MessagePattern('payments.deploy')
+  checkHealth() {
+    return { status: 'ok Gaby test' };
+  }
+  
   @MessagePattern('create.payment.session')
   async createPaymentSession(@Payload() paymentSessionDto: PaymentSessionDto) {
     return await this.paymentsService.createPaymentSession(paymentSessionDto);
@@ -24,10 +29,5 @@ export class PaymentsController {
     } catch (error) {
       throw error;
     }
-  }
-
-  @MessagePattern('payments.deploy')
-  checkHealth() {
-    return { status: 'ok Gaby test' };
   }
 }
