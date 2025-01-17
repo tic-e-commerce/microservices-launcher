@@ -25,7 +25,7 @@ export class ProfileService extends PrismaClient implements OnModuleInit {
       if (!profile) {
         throw new RpcException({
           status: 404,
-          message: 'User not found',
+          message: 'This user not exist',
         });
       }
 

@@ -18,7 +18,7 @@ spec:
         app: profile-ms
     spec:
       containers:
-        - image: us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/profile-ms
+        - image: '{{ index .Values "profile-ms" "image" "repository" }}:{{ index .Values "profile-ms" "image" "tag" }}'
           name: profile-ms
           env:
             - name: PORT

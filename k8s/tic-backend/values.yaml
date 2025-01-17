@@ -11,6 +11,12 @@ auth-ms:
     tag: "latest"
   frontendUrl: "http://localhost:3000"
 
+profile-ms:
+  enabled: true
+  image:
+    repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/profile-ms"
+    tag: "latest"
+
 payments-ms:
   enabled: true
   image:

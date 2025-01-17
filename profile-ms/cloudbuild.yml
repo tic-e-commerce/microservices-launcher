@@ -5,7 +5,7 @@ steps:
     args:
       - -c
       - |
-        docker build -t us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/profile-ms -f profile-ms/dockerfile.prod --platform=linux/amd64 --build-arg USER_DATABASE_URL=$$DATABASE_URL .
+        docker build -t us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/profile-ms:${COMMIT_SHA} -f profile-ms/dockerfile.prod --platform=linux/amd64 --build-arg USER_DATABASE_URL=$$DATABASE_URL .
     secretEnv: ['DATABASE_URL']
 
   # Step 2: Push the Docker image to the registry
@@ -13,9 +13,33 @@ steps:
     args:
       [
         'push',
-        'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/profile-ms',
+        'us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/profile-ms:${COMMIT_SHA}',
       ]
 
+  # Paso 3: Instalar el plugin gke-gcloud-auth-plugin
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: ['components', 'install', 'gke-gcloud-auth-plugin']
+
+  # Paso 4: Autenticarse contra el clúster de Kubernetes
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      [
+        'container',
+        'clusters',
+        'get-credentials',
+        'tic-backend-gke',
+        '--region',
+        'southamerica-east1',
+      ]
+
+  # Paso 5: Instalar Helm y ejecutar el comando Helm
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'sh'
+    args:
+      [
+        '-c',
+        'curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash && helm upgrade tic-backend ./k8s/tic-backend --install --timeout 15m --debug --atomic --set profile-ms.image.repository=us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/profile-ms,profile-ms.image.tag=${COMMIT_SHA} --namespace default',
+      ]
 # Available secrets configuration, linking the secret in Secret Manager to the DATABASE_URL env var
 availableSecrets:
   secretManager:
