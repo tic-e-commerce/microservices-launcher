@@ -18,7 +18,7 @@ spec:
         app: user-preferences-ms
     spec:
       containers:
-        - image: us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/user-preferences-ms
+        - image: '{{ index .Values "user-preferences-ms" "image" "repository" }}:{{ index .Values "user-preferences-ms" "image" "tag" }}'
           name: user-preferences-ms
           env:
             - name: PORT

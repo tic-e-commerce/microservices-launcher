@@ -17,6 +17,12 @@ profile-ms:
     repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/profile-ms"
     tag: "latest"
 
+user-preferences-ms:
+  enabled: true
+  image:
+    repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/user-preferences-ms"
+    tag: "latest"
+
 payments-ms:
   enabled: true
   image:

@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
 import { NATS_SERVICE } from 'src/config';
 import { AddFavoriteProductDto } from './dto/add-favorite-product.dto';
+import { stat } from 'fs';
 
 @Injectable()
 export class FavoriteProductService
@@ -74,6 +75,7 @@ export class FavoriteProductService
       }
 
       return {
+        status: 200,
         user_id,
         products,
       };
