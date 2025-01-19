@@ -186,7 +186,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     return paymentSession;
   }
 
-  // UPDATE NOW
+  // UPDATE 
   // async findOrderById(order_id: string, includeOrderItems = true) {
   //   const order = await this.order.findUnique({
   //     where: { order_id },
