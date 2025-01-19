@@ -41,6 +41,4 @@ export class OrdersController {
   async handleOrderExpired(@Payload() data: { order_id: string }) {
     return this.ordersService.handleOrderExpired(data.order_id);
   }
-
-  
 }
