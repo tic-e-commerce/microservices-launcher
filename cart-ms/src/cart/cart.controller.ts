@@ -27,12 +27,6 @@ export class CartController {
   async update(@Payload() updateCartDto: UpdateCartDto) {
     return this.cartService.update(updateCartDto);
   }
-  // @MessagePattern('updateCart')
-  // async update(@Payload() payload: any) {
-  //   const { user_id, product_id, quantity } = payload;
-
-  //   return this.cartService.update({ user_id, product_id, quantity });
-  // }
 
   @MessagePattern('removeCart')
   async remove(@Payload() cartItemActionDto: CartItemActionDto) {
