@@ -66,8 +66,8 @@ export class CartService extends PrismaClient implements OnModuleInit {
       cart = await this.cart.create({
         data: {
           user_id,
-          shipping_method: 'STANDARD', // Método de envío por defecto
-          shipping_cost: 3.99,        // Costo por defecto para STANDARD
+          shipping_method: 'STANDARD', 
+          shipping_cost: 3.99,        //// Costo por defecto para STANDARD
         },
       });
     }
