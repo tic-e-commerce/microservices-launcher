@@ -105,7 +105,6 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
         });
       }
 
-      // Determinar el costo de envío dinámicamente basado en el método de envío
       const shippingDetails = {
         STANDARD: 3.99,
         EXPRESS: 7.99,
@@ -124,7 +123,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
         0,
       );
 
-      const finalAmount = totalAmount + shipping_cost; // Incluir el costo de envío
+      const finalAmount = totalAmount + shipping_cost; 
 
       const order = await this.$transaction(async (prisma) => {
         const newOrder = await prisma.order.create({

@@ -31,7 +31,6 @@ export class CartController {
   // async update(@Payload() payload: any) {
   //   const { user_id, product_id, quantity } = payload;
 
-  //   // Llamar al servicio pasando todos los parámetros necesarios
   //   return this.cartService.update({ user_id, product_id, quantity });
   // }
 
@@ -46,16 +45,11 @@ export class CartController {
   }
 
 
-
-
-
   @MessagePattern('shippingCart')
   async updateShippingMethod(@Payload() payload: { user_id: number; shipping_method: 'STANDARD' | 'EXPRESS' | 'STORE' }) {
     const { user_id, shipping_method } = payload;
 
     this.logger.log(`Updating shipping method for user ${user_id} to ${shipping_method}`);
-    
-    // Llamar al servicio para actualizar el método de envío
     return await this.cartService.updateShippingMethod(user_id, shipping_method);
   }
 
