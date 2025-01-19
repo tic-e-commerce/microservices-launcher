@@ -38,7 +38,6 @@ export class CartController {
     return this.cartService.clearCart(cartClearEventDto.user_id); 
   }
 
-
   @MessagePattern('shippingCart')
   async updateShippingMethod(@Payload() payload: { user_id: number; shipping_method: 'STANDARD' | 'EXPRESS' | 'STORE' }) {
     const { user_id, shipping_method } = payload;
@@ -46,5 +45,4 @@ export class CartController {
     this.logger.log(`Updating shipping method for user ${user_id} to ${shipping_method}`);
     return await this.cartService.updateShippingMethod(user_id, shipping_method);
   }
-
 }
