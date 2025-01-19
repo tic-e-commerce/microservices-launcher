@@ -30,3 +30,15 @@ payments-ms:
     tag: "latest"
   frontendUrlSuccess: "http://localhost:3000/success"
   frontendUrlCancel: "http://localhost:3000/cancel"
+
+cart-ms:
+  enabled: true
+  image:
+    repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/cart-ms"
+    tag: "latest"
+
+orders-ms:
+  enabled: true
+  image:
+    repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/orders-ms"
+    tag: "latest"
