@@ -55,7 +55,6 @@ export class CartService extends PrismaClient implements OnModuleInit {
     const { product_id, quantity, user_id } = createCartDto;
     await this.verifyProductAvailability(product_id, quantity);
   
-    // Verificar si el carrito existe, si no, crearlo con valores por defecto
     let cart = await this.cart.findUnique({
       where: { user_id },
     });
