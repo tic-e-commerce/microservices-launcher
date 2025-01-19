@@ -69,7 +69,6 @@ export class CartService extends PrismaClient implements OnModuleInit {
       });
     }
   
-    // Verificar si el producto ya está en el carrito
     const existingCartItem = await this.cartItem.findFirst({
       where: { user_id, product_id },
     });
@@ -89,7 +88,7 @@ export class CartService extends PrismaClient implements OnModuleInit {
   }
   
   
-  // PENDING
+  // PENDING UPDATE
   // async findAll(user_id: number) {
   //   try {
   //     const cartItems = await this.cartItem.findMany({ where: { user_id } });
