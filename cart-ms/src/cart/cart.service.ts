@@ -88,7 +88,7 @@ export class CartService extends PrismaClient implements OnModuleInit {
   }
   
   
-  // PENDING NOW
+  // PENDING 
   // async findAll(user_id: number) {
   //   try {
   //     const cartItems = await this.cartItem.findMany({ where: { user_id } });
