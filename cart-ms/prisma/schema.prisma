@@ -24,9 +24,6 @@ model CartItem {
   @@map("cart_items")
 }
 
-/**
- * Modelo de carrito de compras nuevo
- */
 model Cart {
   cart_id         Int      @id @default(autoincrement())
   user_id         Int      @unique

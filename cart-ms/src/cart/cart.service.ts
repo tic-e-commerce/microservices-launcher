@@ -1,11 +1,12 @@
 import { Injectable, Logger, OnModuleInit, Inject } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ShippingMethod } from '@prisma/client';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { NATS_SERVICE } from 'src/config/services';
 import { CreateCartDto } from './common/dto/create-cart.dto';
 import { UpdateCartDto } from './common/dto/update-cart.dto';
 import { firstValueFrom } from 'rxjs';
-import { CartItemActionDto } from './common';
+import { CartItemActionDto, ShippingDetails } from './common';
+
 
 @Injectable()
 export class CartService extends PrismaClient implements OnModuleInit {
@@ -13,7 +14,7 @@ export class CartService extends PrismaClient implements OnModuleInit {
   constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {
     super();
   }
-
+ 
   async onModuleInit() {
     await this.$connect();
     this.logger.log('Connected to the database');
@@ -31,40 +32,22 @@ export class CartService extends PrismaClient implements OnModuleInit {
     }
   }
 
-  // async create(createCartDto: CreateCartDto) {
-  //   const { product_id, quantity, user_id } = createCartDto;
-  //   await this.verifyProductAvailability(product_id, quantity);
-
-  //   const existingCartItem = await this.cartItem.findFirst({
-  //     where: { user_id, product_id },
-  //   });
-
-  //   const cartItem = existingCartItem
-  //     ? await this.cartItem.update({
-  //         where: { cart_item_id: existingCartItem.cart_item_id },
-  //         data: { quantity: existingCartItem.quantity + quantity },
-  //       })
-  //     : await this.cartItem.create({
-  //         data: { user_id, product_id, quantity },
-  //       });
-
-  //   return cartItem;
-  // }
-
   async create(createCartDto: CreateCartDto) {
     const { product_id, quantity, user_id } = createCartDto;
     await this.verifyProductAvailability(product_id, quantity);
-  
+
     let cart = await this.cart.findUnique({
       where: { user_id },
     });
   
     if (!cart) {
+      const defaultShippingMethod = ShippingMethod.STANDARD;
+      const defaultShippingCost = ShippingDetails[defaultShippingMethod].cost;
+  
       cart = await this.cart.create({
-        data: {
-          user_id,
-          shipping_method: 'STANDARD', 
-          shipping_cost: 3.99,        //// Costo por defecto para STANDARD
+        data: {user_id,
+          shipping_method: defaultShippingMethod,
+          shipping_cost: defaultShippingCost,
         },
       });
     }
@@ -73,7 +56,6 @@ export class CartService extends PrismaClient implements OnModuleInit {
       where: { user_id, product_id },
     });
   
-    // Actualizar cantidad o crear un nuevo item en el carrito
     const cartItem = existingCartItem
       ? await this.cartItem.update({
           where: { cart_item_id: existingCartItem.cart_item_id },
@@ -83,59 +65,9 @@ export class CartService extends PrismaClient implements OnModuleInit {
           data: { user_id, product_id, quantity },
         });
   
-    return cartItem
-  
+    return cartItem;
   }
   
-  
-  // PENDING NOW
-  // async findAll(user_id: number) {
-  //   try {
-  //     const cartItems = await this.cartItem.findMany({ where: { user_id } });
-
-  //     const productDetails = await Promise.all(
-  //       cartItems.map(async (item) => {
-  //         try {
-  //           return await firstValueFrom(
-  //             this.client.send('find_one_product', item.product_id),
-  //           );
-  //         } catch (error) {
-  //           throw new RpcException({
-  //             status: 400,
-  //             message: error.message,
-  //           });
-  //         }
-  //       }),
-  //     );
-
-  //     const result = cartItems.map((item) => {
-  //       const productDetail = productDetails.find(
-  //         (product) => product?.product_id === item.product_id,
-  //       );
-
-  //       return {
-  //         ...item,
-  //         product_name: productDetail?.product_name || 'Unknown product',
-  //         price: productDetail?.price || 0,
-  //         image_url: productDetail?.image_url || null,
-  //         total_price: item.quantity * (productDetail?.price || 0),
-  //       };
-  //     });
-
-  //     const subtotal = result.reduce((sum, item) => sum + item.total_price, 0);
-
-  //     return {
-  //       cart: result,
-  //       subtotal: subtotal,
-  //     };
-  //   } catch (error) {
-  //     throw new RpcException({
-  //       status: 400,
-  //       message: error.message,
-  //     });
-  //   }
-  // }
-
   async findAll(user_id: number) {
     const cartItems = await this.cartItem.findMany({ where: { user_id } });
     const productDetails = await Promise.all(
@@ -145,7 +77,7 @@ export class CartService extends PrismaClient implements OnModuleInit {
         );
       }),
     );
-
+  
     const result = cartItems.map((item) => {
       const productDetail = productDetails.find(
         (product) => product.product_id === item.product_id,
@@ -158,30 +90,29 @@ export class CartService extends PrismaClient implements OnModuleInit {
         total_price: item.quantity * productDetail.price,
       };
     });
-
+  
     const subtotal = result.reduce((sum, item) => sum + item.total_price, 0);
     const cart = await this.cart.findUnique({ where: { user_id } });
-
+  
+    const shipping_method = cart?.shipping_method || ShippingMethod.STANDARD;
+    const shipping_cost =
+      cart?.shipping_cost ?? ShippingDetails[shipping_method].cost;
+  
     return {
       cart: result,
       subtotal,
-      shipping_method: cart?.shipping_method || 'STANDARD',
-      shipping_cost: cart?.shipping_cost || 3.99,
-      total: subtotal + (cart?.shipping_cost || 3.99),
+      shipping_method,
+      shipping_cost,
+      total: subtotal + shipping_cost,
     };
   }
 
   async updateShippingMethod(
     user_id: number,
-    shipping_method: 'STANDARD' | 'EXPRESS' | 'STORE',
+    shipping_method: ShippingMethod,
   ) {
-    const shippingDetails = {
-      STANDARD: { cost: 3.99 },
-      EXPRESS: { cost: 7.99 },
-      STORE: { cost: 0.0 },
-    };
+    const selectedMethod = ShippingDetails[shipping_method];
 
-    const selectedMethod = shippingDetails[shipping_method];
     if (!selectedMethod) {
       throw new RpcException({
         status: 400,
@@ -189,7 +120,6 @@ export class CartService extends PrismaClient implements OnModuleInit {
       });
     }
 
-    // Verificar si el carrito existe
     const cart = await this.cart.findUnique({
       where: { user_id },
     });
@@ -200,7 +130,7 @@ export class CartService extends PrismaClient implements OnModuleInit {
         message: 'Cart not found for the given user_id.',
       });
     }
-    // Actualizar el carrito con el método de envío seleccionado
+
     await this.cart.update({
       where: { user_id },
       data: {
@@ -215,8 +145,6 @@ export class CartService extends PrismaClient implements OnModuleInit {
       shipping_cost: selectedMethod.cost,
     };
   }
-
-  // async update({ user_id, product_id, quantity }: { user_id: number; product_id: number; quantity: number }) {
 
   async update(updateCartDto: UpdateCartDto) {
     const { product_id, user_id, quantity } = updateCartDto;

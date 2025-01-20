@@ -5,14 +5,6 @@ export class UpdateCartDto {
   @IsOptional()
   cart_item_id?: number;
 
-  // @IsNotEmpty()
-  // @Type(() => Number)
-  // user_id: number;
-
-  // @IsInt()
-  // @IsNotEmpty()
-  // product_id: number;
-
   @IsInt()
   @IsPositive()
   @IsNotEmpty()

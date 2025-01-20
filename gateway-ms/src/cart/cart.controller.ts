@@ -8,8 +8,9 @@ import {
   Inject,
   Logger,
   Patch,
-  ParseIntPipe,
   UseGuards,
+  Req,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { CreateCartDto } from './dto/create-cart.dto';
 import { UpdateCartDto } from './dto/update-cart.dto';
@@ -17,6 +18,7 @@ import { NATS_SERVICE } from 'src/config';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { catchError, firstValueFrom } from 'rxjs';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { ShippingMethod } from './enums/shipping-method.enum';
 
 @Controller('cart')
 export class CartController {
@@ -24,40 +26,45 @@ export class CartController {
 
   constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
-  // @UseGuards(AuthGuard)
-  @Post()
-  async create(@Body() createCartDto: CreateCartDto) {
-    return this.client.send('createCart', createCartDto).pipe(
-      catchError((error) => {
-        throw new RpcException(error);
-      }),
-    ); 
-  }
-
-  
-  // @UseGuards(AuthGuard)
-  @Get(':user_id')
-  async findAll(@Param('user_id', ParseIntPipe) user_id: number) {
-    return this.client.send('findAllCart', { user_id }).pipe(
+  @UseGuards(AuthGuard)
+  @Post('add-item')
+  async create(@Body() createCartDto: CreateCartDto, @Req() req) {
+    const user = req.user;
+    createCartDto.user_id = user.user_id;
+    return this.client.send('cart.item.add', createCartDto).pipe(
       catchError((error) => {
         throw new RpcException(error);
       }),
     );
   }
 
-  // @UseGuards(AuthGuard)
-  @Patch(':user_id/:product_id')
+  @UseGuards(AuthGuard)
+  @Get('items')
+  async findAll(@Req() req) {
+    const user = req.user;
+    return this.client.send('cart.items.get', { user_id: user.user_id }).pipe(
+      catchError((error) => {
+        throw new RpcException(error);
+      }),
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('update-item/:product_id')
   async update(
-    @Param('user_id', ParseIntPipe) user_id: number,
     @Param('product_id', ParseIntPipe) product_id: number,
     @Body() updateCartDto: UpdateCartDto,
+    @Req() req,
   ) {
+    const user = req.user;
+    const updatePayload = {
+      ...updateCartDto,
+      user_id: user.user_id,
+      product_id,
+    };
     try {
-      const updatePayload = { ...updateCartDto, user_id, product_id };
-      console.log('Payload enviado al microservicio:', updatePayload);
-
       const response = await firstValueFrom(
-        this.client.send('updateCart', updatePayload),
+        this.client.send('cart.item.update', updatePayload),
       );
       return response;
     } catch (error) {
@@ -65,15 +72,16 @@ export class CartController {
     }
   }
 
-  // @UseGuards(AuthGuard)
-  @Delete(':user_id/:product_id')
-  async remove(
-    @Param('user_id', ParseIntPipe) user_id: number,
-    @Param('product_id', ParseIntPipe) product_id: number,
-  ) {
+  @UseGuards(AuthGuard)
+  @Delete('remove-item/:product_id')
+  async remove(@Param('product_id', ParseIntPipe) product_id: number, @Req() req) {
+    const user = req.user;
     try {
       const response = await firstValueFrom(
-        this.client.send('removeCart', { user_id, product_id }),
+        this.client.send('cart.item.remove', {
+          user_id: user.user_id,
+          product_id,
+        }),
       );
       return response;
     } catch (error) {
@@ -81,17 +89,18 @@ export class CartController {
     }
   }
 
-
-  // @UseGuards(AuthGuard)
-  @Post('shipping-method')
+  @UseGuards(AuthGuard)
+  @Post('set-shipping-method')
   async setShippingMethod(
-    @Body() payload: { user_id: number; shipping_method: 'STANDARD' | 'EXPRESS' | 'STORE' },
+    @Body() payload: { shipping_method: ShippingMethod },
+    @Req() req,
   ) {
-    return this.client.send('shippingCart', payload).pipe(
+    const user = req.user;
+    const requestPayload = { ...payload, user_id: user.user_id };
+    return this.client.send('cart.shippingMethod.set', requestPayload).pipe(
       catchError((error) => {
         throw new RpcException(error);
       }),
     );
   }
-  
 }
