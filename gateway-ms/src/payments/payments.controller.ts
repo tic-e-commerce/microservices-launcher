@@ -23,18 +23,17 @@ export class PaymentsController {
 
   constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
-  @Get('deploy')
-  async checkHealth() {
-    console.log('Checking health of payments service');
-    return await firstValueFrom(this.client.send('payments.deploy', {}));
-  }
-
   @UseGuards(AuthGuard)
   @Post('create-payment-session')
-  async createPaymentSession(@Body() paymentSessionDto: PaymentSessionDto) {
+  async createPaymentSession(
+    @Body() paymentSessionDto: PaymentSessionDto,
+    @Req() req,
+  ) {
+    const user = req.user;
+    paymentSessionDto.user_id = user.user_id;
     try {
       const response = await firstValueFrom(
-        this.client.send('create.payment.session', paymentSessionDto),
+        this.client.send('payment.session.create', paymentSessionDto),
       );
       return response;
     } catch (error) {
@@ -49,7 +48,7 @@ export class PaymentsController {
       const headers = req.headers;
 
       const response = await firstValueFrom(
-        this.client.send('process.payment.webhook', {
+        this.client.send('payment.webhook.process', {
           rawBody,
           headers,
         }),
@@ -77,5 +76,10 @@ export class PaymentsController {
       ok: false,
       message: 'Payment cancelled',
     });
+  }
+
+  @Get('health')
+  async checkHealth() {
+    return await firstValueFrom(this.client.send('payments.health', {}));
   }
 }
