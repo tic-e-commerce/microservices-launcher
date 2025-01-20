@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  HttpStatus,
   Inject,
   Logger,
   Param,
@@ -19,25 +18,14 @@ import { AuthGuard } from 'src/auth/guards/auth.guard';
 
 @Controller('orders')
 export class OrdersController {
-  private readonly logger = new Logger(OrdersController.name);
-
   constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
-  // @UseGuards(AuthGuard)
-  // @Post('create')
-  // async createOrder(@Body() createOrderDto: CreateOrderDto) {
-  //   return this.client.send('create_order', createOrderDto).pipe(
-  //     catchError((error) => {
-  //       throw new RpcException(error);  
-  //     }),  
-  //   );
-  // }
   @UseGuards(AuthGuard)
   @Post('create')
   async createOrder(@Body() createOrderDto: CreateOrderDto, @Req() req) {
     const user = req.user; 
     createOrderDto.user_id = user.user_id; 
-    return this.client.send('create_order', createOrderDto).pipe(
+    return this.client.send('order.create', createOrderDto).pipe(
       catchError((error) => {
         throw new RpcException(error);
       }),
@@ -45,11 +33,12 @@ export class OrdersController {
   }
 
   @UseGuards(AuthGuard)
-  @Get(':order_id')
-  async getOrder(@Param('order_id', ParseUUIDPipe) order_id: string) {
+  @Get('details/:order_id')
+  async getOrder(@Param('order_id', ParseUUIDPipe) order_id: string, @Req() req) {
+    const user = req.user; 
     try {
       const result = await firstValueFrom(
-        this.client.send('get_order', { order_id }),
+        this.client.send('order.details.get', { order_id, user_id: user.user_id }),
       );
       return result;
     } catch (error) {
@@ -59,8 +48,9 @@ export class OrdersController {
 
   @UseGuards(AuthGuard)
   @Post('cancel')
-  async cancelOrder(@Body('order_id', ParseUUIDPipe) order_id: string) {
-    return this.client.send('cancel_order', { order_id }).pipe(
+  async cancelOrder(@Body('order_id', ParseUUIDPipe) order_id: string, @Req() req) {
+    const user = req.user; 
+    return this.client.send('order.cancel', { order_id, user_id: user.user_id }).pipe(
       catchError((error) => {
         throw new RpcException(error);
       }),

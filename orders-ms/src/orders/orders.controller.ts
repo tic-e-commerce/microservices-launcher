@@ -5,17 +5,15 @@ import { CreateOrderDto, PaidOrderDto, UpdateOrderStatusDto } from 'src/orders/d
 
 @Controller()
 export class OrdersController {
-  private readonly logger = new Logger(OrdersController.name);
-
   constructor(private readonly ordersService: OrdersService) {}
 
-  @MessagePattern('create_order')
+  @MessagePattern('order.create')
   async createOrder(@Payload() createOrderDto: CreateOrderDto) {
     console.log('User ID recibido:', createOrderDto.user_id); 
     return await this.ordersService.createOrder(createOrderDto);
   }
 
-  @MessagePattern('get_order')
+  @MessagePattern('order.details.get')
   async handleGetOrderById(
     @Payload('order_id', ParseUUIDPipe) order_id: string,) {
     return await this.ordersService.findOrderById(order_id);
@@ -32,7 +30,7 @@ export class OrdersController {
     return this.ordersService.paidOrder(paidOrderDto);
   }
 
-  @MessagePattern('cancel_order')
+  @MessagePattern('order.cancel')
   async cancelOrder(@Payload('order_id', ParseUUIDPipe) order_id: string) {
     return await this.ordersService.cancelOrder(order_id);
   }
