@@ -22,11 +22,11 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
   }
 
   async createPaymentSession(paymentSessionDto: PaymentSessionDto) {
-    const { order_id, currency } = paymentSessionDto;
+    const { order_id, currency, billing_details } = paymentSessionDto;
 
     try {
       const orderDetails = await firstValueFrom(
-        this.client.send('get_order', { order_id }),
+        this.client.send('order.details.get', { order_id }),
       );
 
       // Validar el estado de la orden
@@ -55,7 +55,6 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
         quantity: item.quantity,
       }));
 
-      // Incluir el costo de envío como un line item adicional
       const shipping_cost = orderDetails.shipping_cost || 0.0;
       if (shipping_cost > 0) {
         lineItems.push({
@@ -66,23 +65,24 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
               description: 'This is a fixed fee for shipping your order.',
             },
             unit_amount: Math.round(shipping_cost * 100),
-            
           },
-          quantity: 1, 
+          quantity: 1,
         });
       }
 
-      
-      // Crear la sesión de pago en Stripe
       const session = await this.stripe.checkout.sessions.create({
         payment_intent_data: {
-          metadata: { order_id },
+          metadata: { order_id, ...billing_details },
         },
         metadata: { order_id },
         line_items: lineItems,
         mode: 'payment',
         success_url: envs.stripeSuccessUrl,
         cancel_url: envs.stripeCancelUrl,
+      });
+
+      const billingDetailsRecord = await this.billingDetails.create({
+        data: { ...billing_details },
       });
 
       await this.payment.create({
@@ -93,6 +93,7 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
           currency,
           status: 'PENDING',
           receipt_url: session.url,
+          billing_details_id: billingDetailsRecord.id,
         },
       });
 
@@ -145,7 +146,7 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
 
           // Emitir evento de éxito
           const orderDetails = await firstValueFrom(
-            this.client.send('get_order', {
+            this.client.send('order.details.get', {
               order_id: existingPayment.order_id,
             }),
           );
@@ -153,7 +154,7 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
           this.client.emit('payment.succeeded', {
             order_id: existingPayment.order_id,
             stripe_payment_id: existingPayment.id,
-            receipt_url: existingPayment.receipt_url,
+            receipt_url:  existingPayment.receipt_url,
             amount: session.amount_total / 100,
             currency: session.currency,
           });
@@ -172,4 +173,5 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
       });
     }
   }
+
 }

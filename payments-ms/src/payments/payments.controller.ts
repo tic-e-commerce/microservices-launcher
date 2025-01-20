@@ -9,17 +9,12 @@ export class PaymentsController {
 
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  @MessagePattern('payments.deploy')
-  checkHealth() {
-    return { status: 'ok Gaby test' };
-  }
-  
-  @MessagePattern('create.payment.session')
+  @MessagePattern('payment.session.create')
   async createPaymentSession(@Payload() paymentSessionDto: PaymentSessionDto) {
     return await this.paymentsService.createPaymentSession(paymentSessionDto);
   }
 
-  @MessagePattern('process.payment.webhook')
+  @MessagePattern('payment.webhook.process')
   async processWebhook(
     @Payload() data: { rawBody: string; headers: Record<string, string> },
   ) {
@@ -29,5 +24,10 @@ export class PaymentsController {
     } catch (error) {
       throw error;
     }
+  }
+
+  @MessagePattern('payments.health')
+  checkHealth() {
+    return { status: 'ok Gaby' };
   }
 }

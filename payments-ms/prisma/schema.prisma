@@ -14,13 +14,28 @@ datasource db {
 }
 
 model Payment {
-  id               String    @id @default(uuid())
-  order_id         String    
-  stripe_payment_id String   @unique 
-  amount           Float     
-  currency         String    
-  status           String    
-  receipt_url      String    
-  created_at       DateTime  @default(now()) 
-  updated_at       DateTime  @updatedAt      
+  id                String @id @default(uuid())
+  order_id          String
+  stripe_payment_id String @unique
+  amount            Float
+  currency          String
+  status            String
+  receipt_url       String
+
+  billing_details    BillingDetails? @relation(fields: [billing_details_id], references: [id])
+  billing_details_id Int?
+  created_at         DateTime        @default(now())
+  updated_at         DateTime        @updatedAt
+}
+
+model BillingDetails {
+  id           Int       @id @default(autoincrement())
+  first_name   String
+  last_name    String
+  address      String
+  city         String
+  phone_number String
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  Payment      Payment[]
 }
