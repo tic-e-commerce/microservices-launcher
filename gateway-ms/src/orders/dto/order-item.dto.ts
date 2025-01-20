@@ -8,7 +8,6 @@ export class OrderItemDto {
 
   @IsInt()
   @IsNotEmpty()
-  // @IsPositive()
   @Type(() => Number)
   user_id: number;
 

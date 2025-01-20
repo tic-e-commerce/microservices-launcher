@@ -18,83 +18,11 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     this.logger.log('Database connected');
   }
 
-  // async createOrder(createOrderDto: CreateOrderDto) {
-  //   const { user_id } = createOrderDto;
-  //   try {
-  //     const cartResponse = await firstValueFrom(
-  //       this.client.send('findAllCart', { user_id }),
-  //     );
-  //     const cartItems = cartResponse.cart;
-
-  //     if (!cartItems || cartItems.length === 0) {
-  //       throw new RpcException({
-  //         status: 400,
-  //         message: 'The user has no products in the cart.',
-  //       });
-  //     }
-
-  //     const totalAmount = cartItems.reduce(
-  //       (sum, item) => sum + item.quantity * parseFloat(item.price),
-  //       0,
-  //     );
-  //     const totalItems = cartItems.reduce(
-  //       (sum, item) => sum + item.quantity,
-  //       0,
-  //     );
-
-  //     const order = await this.$transaction(async (prisma) => {
-  //       const newOrder = await prisma.order.create({
-  //         data: {
-  //           user_id,
-  //           total_amount: totalAmount,
-  //           total_items: totalItems,
-  //           order_items: {
-  //             create: cartItems.map((item) => ({
-  //               product_id: item.product_id,
-  //               quantity: item.quantity,
-  //               price: parseFloat(item.price),
-  //               product_name: item.product_name,
-  //               image_url: item.image_url,
-  //             })),
-  //           },
-  //         },
-  //         include: { order_items: true },
-  //       });
-  //       return newOrder;
-  //     });
-
-  //     const reservations = order.order_items.map((item) => ({
-  //       product_id: item.product_id,
-  //       order_id: order.order_id,
-  //       quantity: item.quantity,
-  //       user_id,
-  //     }));
-
-  //     await firstValueFrom(
-  //       this.client.send('create_reservations', { reservations }),
-  //     );
-
-  //     await this.client.emit('order.created', {
-  //       order_id: order.order_id,
-  //       user_id,
-  //       total_amount: order.total_amount,
-  //       total_items: order.total_items,
-  //     });
-
-  //     return order;
-  //   } catch (error) {
-  //     throw new RpcException({
-  //       status: 400,
-  //       message: `Error creating order: ${error.message}`,
-  //     });
-  //   }
-  // }
-
   async createOrder(createOrderDto: CreateOrderDto) {
     const { user_id } = createOrderDto;
     try {
       const cartResponse = await firstValueFrom(
-        this.client.send('findAllCart', { user_id }),
+        this.client.send('cart.items.get', { user_id }),
       );
       const cartItems = cartResponse.cart;
 
@@ -104,7 +32,6 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
           message: 'The user has no products in the cart.',
         });
       }
-
       const shippingDetails = {
         STANDARD: 3.99,
         EXPRESS: 7.99,
@@ -123,7 +50,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
         0,
       );
 
-      const finalAmount = totalAmount + shipping_cost; 
+      const finalAmount = totalAmount + shipping_cost;
 
       const order = await this.$transaction(async (prisma) => {
         const newOrder = await prisma.order.create({
@@ -168,14 +95,14 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     } catch (error) {
       throw new RpcException({
         status: 400,
-        message: `Error creating order: ${error.message}`,
+        message: error.message,
       });
     }
   }
 
   async createPaymentSession(order: OrderWithProducts) {
     const paymentSession = await firstValueFrom(
-      this.client.send('create.payment.session', {
+      this.client.send('payment.session.create', {
         order_id: order.order_id,
         currency: 'usd',
         items: order.OrderItem.map((item) => ({
@@ -186,44 +113,24 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
     return paymentSession;
   }
 
-  // UPDATE 
-  // async findOrderById(order_id: string, includeOrderItems = true) {
-  //   const order = await this.order.findUnique({
-  //     where: { order_id },
-  //     include: includeOrderItems ? { order_items: true } : undefined,
-  //   });
-
-  //   if (!order) {
-  //     throw new RpcException({
-  //       status: 404,
-  //       message: 'Order with ID ${order_id} not found.',
-  //     });
-  //   }
-  //   return order;
-  // }
-
   async findOrderById(order_id: string, includeOrderItems = true) {
     const order = await this.order.findUnique({
       where: { order_id },
       include: includeOrderItems ? { order_items: true } : undefined,
     });
-  
+
     if (!order) {
       throw new RpcException({
         status: 404,
         message: `Order with ID ${order_id} not found.`,
       });
     }
-  
-    // Llamar a cart-ms para obtener los detalles del carrito
+
     const cartResponse = await firstValueFrom(
-      this.client.send('findAllCart', { user_id: order.user_id }),
+      this.client.send('cart.items.get', { user_id: order.user_id }),
     );
-  
-    // Usar los datos de cart-ms para calcular los totales
     const { subtotal, shipping_cost, total } = cartResponse;
-  
-    // Retornar la orden con los totales obtenidos
+
     return {
       ...order,
       subtotal,
@@ -231,7 +138,6 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       total,
     };
   }
-  
 
   async updateOrderStatus(updateOrderStatusDto: UpdateOrderStatusDto) {
     const { order_id, status } = updateOrderStatusDto;
