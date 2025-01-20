@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ngrok-tunnel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ngrok
+  template:
+    metadata:
+      labels:
+        app: ngrok
+    spec:
+      containers:
+        - name: ngrok
+          image: ngrok/ngrok:latest
+          args:
+            - "http"
+            - "--region=us"
+            - "http://34.8.180.215:80"
+          env:
+            - name: NGROK_AUTHTOKEN
+              value: "2ruPZWh5RnDogn22oGBv8ACIyzd_4gEGB34XNWpUX8AUDYJdZ"
+            - name: NGROK_LOG
+              value: "stdout"
