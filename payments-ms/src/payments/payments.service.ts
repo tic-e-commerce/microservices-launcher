@@ -173,5 +173,4 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
       });
     }
   }
-
 }
