@@ -154,7 +154,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
   }
 
   async paidOrder(paidOrderDto: PaidOrderDto) {
-    this.logger.log(paidOrderDto);
+    // this.logger.log(paidOrderDto);
 
     const order = await this.order.findUnique({
       where: { order_id: paidOrderDto.order_id },
