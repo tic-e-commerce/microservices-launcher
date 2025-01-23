@@ -135,7 +135,7 @@ export class PaymentsService extends PrismaClient implements OnModuleInit {
             });
           }
 
-          // Actualizar el estado del pago en la base de datos
+          // Actualizar el estado del pago en la BD
           await this.payment.update({
             where: { stripe_payment_id: session.id },
             data: {
