@@ -42,3 +42,9 @@ orders-ms:
   image:
     repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/orders-ms"
     tag: "latest"
+
+attributes-ms:
+  enabled: true
+  image:
+    repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/attributes-ms"
+    tag: "latest"
