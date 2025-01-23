@@ -78,8 +78,9 @@ export class PaymentsController {
     });
   }
 
-  
 
+
+  
   @Get('health')
   async checkHealth() {
     return await firstValueFrom(this.client.send('payments.health', {}));
