@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: image-ms
+  name: image-ms
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: image-ms
+  template:
+    metadata:
+      labels:
+        app: image-ms
+    spec:
+      containers:
+        - image: '{{ index .Values "image-ms" "image" "repository" }}:{{ index .Values "image-ms" "image" "tag" }}'
+          name: image-ms
+          env:
+            - name: PORT
+              value: "3000"
+            - name: NATS_SERVERS
+              value: "nats://nats:4222"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: image-secrets
+                  key: database_url
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
