@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: review-ms
+  name: review-ms
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: review-ms
+  template:
+    metadata:
+      labels:
+        app: review-ms
+    spec:
+      containers:
+        - image: '{{ index .Values "review-ms" "image" "repository" }}:{{ index .Values "review-ms" "image" "tag" }}'
+          name: review-ms
+          env:
+            - name: PORT
+              value: "3000"
+            - name: NATS_SERVERS
+              value: "nats://nats:4222"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: review-secrets
+                  key: database_url
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
