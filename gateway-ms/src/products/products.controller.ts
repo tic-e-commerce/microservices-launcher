@@ -85,7 +85,7 @@ export class ProductsController {
   async remove(@Param('id') id: string) {
     try {
       const result = await firstValueFrom(
-        this.client.send('delete_product', { id }),
+        this.client.send('remove_product', { id }),
       );
       return result;
     } catch (error) {
