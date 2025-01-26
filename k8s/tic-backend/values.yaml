@@ -48,3 +48,21 @@ attributes-ms:
   image:
     repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/attributes-ms"
     tag: "latest"
+
+products-ms:
+  enabled: true
+  image:
+    repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/products-ms"
+    tag: "latest"
+
+image-ms:
+  enabled: true
+  image:
+    repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/image-ms"
+    tag: "latest"
+
+review-ms:
+  enabled: true
+  image:
+    repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/review-ms"
+    tag: "latest"
