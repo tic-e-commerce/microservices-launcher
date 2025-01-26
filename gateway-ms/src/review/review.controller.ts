@@ -36,6 +36,18 @@ export class ReviewController {
     }
   }
 
+  @Get('product/:product_id')
+  async findByProductId(@Param('product_id', ParseIntPipe) product_id: number) {
+    try {
+      const reviews = await firstValueFrom(
+        this.client.send('find_reviews_by_product', product_id),
+      );
+      return reviews;
+    } catch (error) {
+      throw new RpcException(error);
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.client.send('find_one_review', id).pipe(
