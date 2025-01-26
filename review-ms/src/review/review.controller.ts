@@ -23,6 +23,14 @@ export class ReviewController {
     return this.reviewService.findOne(id);
   }
 
+  @MessagePattern('find_reviews_by_product')
+  findByProductId(@Payload() product_id: number) {
+    if (!product_id) {
+      throw new RpcException('Invalid product ID payload');
+    }
+    return this.reviewService.findByProductId(product_id);
+  }
+
   @MessagePattern('update_review')
   update(@Payload() payload: { id: number; updateReviewDto: UpdateReviewDto }) {
     console.log('Received payload:', payload);

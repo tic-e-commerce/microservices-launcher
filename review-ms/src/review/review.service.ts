@@ -50,6 +50,16 @@ export class ReviewService extends PrismaClient implements OnModuleInit {
     return review;
   }
 
+  async findByProductId(product_id: number): Promise<Review[]> {
+    const reviews = await this.review.findMany({
+      where: { product_id },
+    });
+    this.logger.log(
+      `Fetched ${reviews.length} reviews for product ID: ${product_id}`,
+    );
+    return reviews;
+  }
+
   async update(id: number, updateReviewDto: UpdateReviewDto): Promise<Review> {
     if (!updateReviewDto) {
       throw new Error('updateReviewDto is undefined');
