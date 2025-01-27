@@ -55,7 +55,7 @@ export class ReviewService extends PrismaClient implements OnModuleInit {
       where: { product_id },
     });
     this.logger.log(
-      `Fetched ${reviews.length} reviews for product ID: ${product_id}`,
+      `Fetched ${reviews.length} reviews for product_ic: ${product_id}`,
     );
     return reviews;
   }
