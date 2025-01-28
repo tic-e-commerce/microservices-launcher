@@ -50,6 +50,28 @@ export class AttributesService extends PrismaClient implements OnModuleInit {
     return attribute;
   }
 
+  async findValuesByProductId(product_id: number) {
+    const attributeValues = await this.attributeValue.findMany({
+      where: { product_id },
+      include: {
+        attribute: true,
+      },
+    });
+
+    this.logger.log(
+      `Fetched ${attributeValues.length} attribute values for product ID: ${product_id}`,
+    );
+
+    return attributeValues.map((value) => ({
+      attribute_id: value.attribute_id,
+      attribute_name: value.attribute.attribute_name,
+      attribute_type: value.attribute.attribute_type,
+      value: value.value,
+      created_at: value.created_at,
+      updated_at: value.updated_at,
+    }));
+  }
+
   async update(
     id: number,
     updateAttributeDto: UpdateAttributeDto,

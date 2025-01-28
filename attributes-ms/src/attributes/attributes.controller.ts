@@ -40,4 +40,13 @@ export class AttributesController {
   remove(@Payload() id: number) {
     return this.attributesService.remove(id);
   }
+
+  @MessagePattern('find_attribute_values_by_product')
+  findValuesByProductId(@Payload() product_id: number) {
+    if (!product_id) {
+      throw new RpcException('Invalid product ID payload');
+    }
+
+    return this.attributesService.findValuesByProductId(product_id);
+  }
 }
