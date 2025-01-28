@@ -48,6 +48,20 @@ export class AttributesController {
     }
   }
 
+  @Get('values/product/:product_id')
+  async findValuesByProductId(
+    @Param('product_id', ParseIntPipe) product_id: number,
+  ) {
+    try {
+      const attributeValues = await firstValueFrom(
+        this.client.send('find_attribute_values_by_product', product_id),
+      );
+      return attributeValues;
+    } catch (error) {
+      throw new RpcException(error);
+    }
+  }
+
   @Patch(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
