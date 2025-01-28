@@ -13,7 +13,7 @@ export class AttributesService extends PrismaClient implements OnModuleInit {
   }
   async onModuleInit() {
     await this.$connect();
-    this.logger.log('Connected to the database');
+    this.logger.log('Connected to the database welcome');
   }
 
   async create(createAttributeDto: CreateAttributeDto): Promise<Attribute> {
