@@ -203,41 +203,119 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
     }
   }
 
+  // async createReservations(reservations: ReservationItemDto[]) {
+  //   try {
+  //     await this.validateProducts(reservations);
+  //     await this.$transaction(async (prisma) => {
+  //       for (const {
+  //         user_id,
+  //         product_id,
+  //         quantity,
+  //         order_id,
+  //       } of reservations) {
+  //         const existingReservation = await prisma.reservation.findFirst({
+  //           where: { user_id, product_id, status: 'ACTIVE', order_id },
+  //         });
+
+  //         if (existingReservation) {
+  //           await prisma.reservation.update({
+  //             where: { reservation_id: existingReservation.reservation_id },
+  //             data: { quantity: existingReservation.quantity + quantity },
+  //           });
+  //         } else {
+  //           await prisma.reservation.create({
+  //             data: {
+  //               user_id,
+  //               product_id,
+  //               order_id,
+  //               quantity,
+  //               status: 'ACTIVE',
+  //               expires_at: new Date(Date.now() + 3 * 60 * 1000),
+  //             },
+  //           });
+  //         }
+  //       }
+  //       await this.updateProductStock(reservations);
+  //     });
+
+  //     return { message: 'Reservations created successfully.' };
+  //   } catch (error) {
+  //     throw new RpcException({
+  //       status: 400,
+  //       message: `Error creating reservations: ${error.message}`,
+  //     });
+  //   }
+  // }
+
   async createReservations(reservations: ReservationItemDto[]) {
     try {
       await this.validateProducts(reservations);
-      await this.$transaction(async (prisma) => {
-        for (const {
-          user_id,
-          product_id,
-          quantity,
-          order_id,
-        } of reservations) {
-          const existingReservation = await prisma.reservation.findFirst({
-            where: { user_id, product_id, status: 'ACTIVE', order_id },
-          });
-
-          if (existingReservation) {
-            await prisma.reservation.update({
-              where: { reservation_id: existingReservation.reservation_id },
-              data: { quantity: existingReservation.quantity + quantity },
-            });
-          } else {
-            await prisma.reservation.create({
-              data: {
-                user_id,
-                product_id,
-                order_id,
-                quantity,
-                status: 'ACTIVE',
-                expires_at: new Date(Date.now() + 3 * 60 * 1000),
-              },
-            });
-          }
-        }
-        await this.updateProductStock(reservations);
+  
+      // 🔹 Obtener todas las reservas existentes en una sola consulta
+      const existingReservations = await this.reservation.findMany({
+        where: {
+          OR: reservations.map(({ user_id, product_id, order_id }) => ({
+            user_id,
+            product_id,
+            order_id,
+            status: 'ACTIVE',
+          })),
+        },
       });
-
+  
+      // 🔹 Mapear reservas existentes para evitar buscar en la BD en cada iteración
+      const reservationMap = new Map(
+        existingReservations.map((res) => [`${res.user_id}-${res.product_id}-${res.order_id}`, res])
+      );
+  
+      // 🔹 Preparar datos para `updateMany` y `createMany`
+      const updates: any[] = [];
+      const inserts: any[] = [];
+  
+      for (const { user_id, product_id, quantity, order_id } of reservations) {
+        const key = `${user_id}-${product_id}-${order_id}`;
+        const existingReservation = reservationMap.get(key);
+  
+        if (existingReservation) {
+          // 🔹 Actualizar cantidad en `updateMany`
+          updates.push({
+            reservation_id: existingReservation.reservation_id,
+            quantity: existingReservation.quantity + quantity,
+          });
+        } else {
+          // 🔹 Agregar nueva reserva en `createMany`
+          inserts.push({
+            user_id,
+            product_id,
+            order_id,
+            quantity,
+            status: 'ACTIVE',
+            expires_at: new Date(Date.now() + 3 * 60 * 1000),
+          });
+        }
+      }
+  
+      // 🔹 Ejecutar transacción optimizada
+      await this.$transaction(async (prisma) => {
+        if (updates.length > 0) {
+          await Promise.all(
+            updates.map(({ reservation_id, quantity }) =>
+              prisma.reservation.update({
+                where: { reservation_id },
+                data: { quantity },
+              })
+            )
+          );
+        }
+  
+        if (inserts.length > 0) {
+          await prisma.reservation.createMany({ data: inserts });
+        }
+      });
+  
+      // 🔹 Actualizar stock después de la transacción (mejor rendimiento)
+      await this.updateProductStock(reservations);
+  
       return { message: 'Reservations created successfully.' };
     } catch (error) {
       throw new RpcException({
@@ -246,7 +324,7 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
       });
     }
   }
-
+  
   async completeReservations(
     items: { product_id: number; quantity: number; order_id: string }[],
   ) {
