@@ -21,77 +21,88 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
   async createOrder(createOrderDto: CreateOrderDto) {
     const { user_id } = createOrderDto;
     try {
-      const cartResponse = await firstValueFrom(
-        this.client.send('cart.items.get', { user_id }),
-      );
+      const [cartResponse] = await Promise.all([
+        firstValueFrom(this.client.send('cart.items.get', { user_id })),
+        this.$connect(),
+      ]);
+  
       const cartItems = cartResponse.cart;
-
+  
       if (!cartItems || cartItems.length === 0) {
         throw new RpcException({
           status: 400,
           message: 'The user has no products in the cart.',
         });
       }
+  
       const shippingDetails = {
         STANDARD: 3.99,
         EXPRESS: 7.99,
         STORE: 0.0,
       };
-
+  
       const shipping_method = cartResponse.shipping_method || 'STANDARD';
       const shipping_cost = shippingDetails[shipping_method];
-
+  
       const totalAmount = cartItems.reduce(
         (sum, item) => sum + item.quantity * parseFloat(item.price),
         0,
       );
-      const totalItems = cartItems.reduce(
-        (sum, item) => sum + item.quantity,
-        0,
-      );
-
+      const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
       const finalAmount = totalAmount + shipping_cost;
-
-      const order = await this.$transaction(async (prisma) => {
+  
+      const orderPromise = this.$transaction(async (prisma) => {
         const newOrder = await prisma.order.create({
           data: {
             user_id,
             total_amount: finalAmount,
             total_items: totalItems,
-            order_items: {
-              create: cartItems.map((item) => ({
-                product_id: item.product_id,
-                quantity: item.quantity,
-                price: parseFloat(item.price),
-                product_name: item.product_name,
-                image_url: item.image_url,
-              })),
-            },
           },
-          include: { order_items: true },
         });
+  
+        await prisma.order_item.createMany({
+          data: cartItems.map((item) => ({
+            order_id: newOrder.order_id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            price: parseFloat(item.price),
+            product_name: item.product_name,
+            image_url: item.image_url,
+          })),
+        });
+  
         return newOrder;
       });
-
-      const reservations = order.order_items.map((item) => ({
+  
+      const { order_id } = await orderPromise;
+  
+      const fullOrder = await this.order.findUnique({
+        where: { order_id },
+        include: { order_items: true },
+      });
+  
+      const reservations = cartItems.map((item) => ({
         product_id: item.product_id,
-        order_id: order.order_id,
+        order_id,
         quantity: item.quantity,
         user_id,
       }));
-
-      await firstValueFrom(
+  
+      const reservationsPromise = firstValueFrom(
         this.client.send('create_reservations', { reservations }),
       );
-
-      await this.client.emit('order.created', {
-        order_id: order.order_id,
+  
+      await reservationsPromise;
+  
+      this.client.emit('order.created', {
+        order_id,
         user_id,
-        total_amount: order.total_amount,
-        total_items: order.total_items,
+        total_amount: fullOrder.total_amount,
+        total_items: fullOrder.total_items,
+        order_items: fullOrder.order_items,
       });
-
-      return order;
+  
+      return fullOrder;
     } catch (error) {
       throw new RpcException({
         status: 400,
@@ -99,6 +110,7 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
       });
     }
   }
+  
 
   async createPaymentSession(order: OrderWithProducts) {
     const paymentSession = await firstValueFrom(
