@@ -165,93 +165,97 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
     }
   }
 
+  // async updateExpiredReservations() {
+  //   try {
+  //     const now = new Date();
+  //     const expiredReservations = await this.reservation.findMany({
+  //       where: { expires_at: { lte: now }, status: 'ACTIVE' },
+  //     });
+
+  //     if (expiredReservations.length) {
+  //       await this.$transaction(async (prisma) => {
+  //         for (const reservation of expiredReservations) {
+  //           await prisma.reservation.update({
+  //             where: { reservation_id: reservation.reservation_id },
+  //             data: { status: 'EXPIRED' }, //RESERVAS
+  //           });
+
+  //           await prisma.product.update({
+  //             where: { product_id: reservation.product_id },
+  //             data: { stock: { increment: reservation.quantity } },
+  //           });
+
+  //           const activeReservations = await prisma.reservation.findMany({
+  //             where: {
+  //               order_id: reservation.order_id,
+  //               status: 'ACTIVE',
+  //             },
+  //           });
+
+  //           if (activeReservations.length === 0) {
+  //             await this.client.emit('order.expired', {
+  //               order_id: reservation.order_id,});}
+  //         }
+  //       });
+  //     }
+  //   } catch (error) {
+  //     throw new RpcException('Error updating expired reservations.');
+  //   }
+  // }
+
   async updateExpiredReservations() {
     try {
       const now = new Date();
       const expiredReservations = await this.reservation.findMany({
         where: { expires_at: { lte: now }, status: 'ACTIVE' },
       });
-
+  
       if (expiredReservations.length) {
-        await this.$transaction(async (prisma) => {
-          for (const reservation of expiredReservations) {
-            await prisma.reservation.update({
-              where: { reservation_id: reservation.reservation_id },
-              data: { status: 'EXPIRED' }, //RESERVAS
-            });
+        const expiredOrders = new Set<string>();
 
-            await prisma.product.update({
+        await this.$transaction(
+          expiredReservations.flatMap((reservation) => [
+            this.reservation.update({
+              where: { reservation_id: reservation.reservation_id },
+              data: { status: 'EXPIRED' },
+            }),
+            this.product.update({
               where: { product_id: reservation.product_id },
               data: { stock: { increment: reservation.quantity } },
-            });
-
-            const activeReservations = await prisma.reservation.findMany({
-              where: {
-                order_id: reservation.order_id,
-                status: 'ACTIVE',
-              },
-            });
-
-            if (activeReservations.length === 0) {
-              await this.client.emit('order.expired', {
-                order_id: reservation.order_id,});}
+            }),
+          ]),
+        );
+  
+        for (const reservation of expiredReservations) {
+          const activeReservations = await this.reservation.findMany({
+            where: {
+              order_id: reservation.order_id,
+              status: 'ACTIVE',
+            },
+          });
+  
+          if (activeReservations.length === 0) {
+            expiredOrders.add(reservation.order_id);
           }
-        });
+        }
+  
+        for (const order_id of expiredOrders) {
+          await this.client.emit('order.expired', { order_id });
+        }
       }
     } catch (error) {
+      this.logger.error(
+        `Error updating expired reservations: ${error.message}`,
+        error.stack,
+      );
       throw new RpcException('Error updating expired reservations.');
     }
   }
-
-  // async createReservations(reservations: ReservationItemDto[]) {
-  //   try {
-  //     await this.validateProducts(reservations);
-  //     await this.$transaction(async (prisma) => {
-  //       for (const {
-  //         user_id,
-  //         product_id,
-  //         quantity,
-  //         order_id,
-  //       } of reservations) {
-  //         const existingReservation = await prisma.reservation.findFirst({
-  //           where: { user_id, product_id, status: 'ACTIVE', order_id },
-  //         });
-
-  //         if (existingReservation) {
-  //           await prisma.reservation.update({
-  //             where: { reservation_id: existingReservation.reservation_id },
-  //             data: { quantity: existingReservation.quantity + quantity },
-  //           });
-  //         } else {
-  //           await prisma.reservation.create({
-  //             data: {
-  //               user_id,
-  //               product_id,
-  //               order_id,
-  //               quantity,
-  //               status: 'ACTIVE',
-  //               expires_at: new Date(Date.now() + 3 * 60 * 1000),
-  //             },
-  //           });
-  //         }
-  //       }
-  //       await this.updateProductStock(reservations);
-  //     });
-
-  //     return { message: 'Reservations created successfully.' };
-  //   } catch (error) {
-  //     throw new RpcException({
-  //       status: 400,
-  //       message: `Error creating reservations: ${error.message}`,
-  //     });
-  //   }
-  // }
 
   async createReservations(reservations: ReservationItemDto[]) {
     try {
       await this.validateProducts(reservations);
   
-      // 🔹 Obtener todas las reservas existentes en una sola consulta
       const existingReservations = await this.reservation.findMany({
         where: {
           OR: reservations.map(({ user_id, product_id, order_id }) => ({
@@ -263,12 +267,10 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
         },
       });
   
-      // 🔹 Mapear reservas existentes para evitar buscar en la BD en cada iteración
       const reservationMap = new Map(
         existingReservations.map((res) => [`${res.user_id}-${res.product_id}-${res.order_id}`, res])
       );
   
-      // 🔹 Preparar datos para `updateMany` y `createMany`
       const updates: any[] = [];
       const inserts: any[] = [];
   
@@ -277,13 +279,11 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
         const existingReservation = reservationMap.get(key);
   
         if (existingReservation) {
-          // 🔹 Actualizar cantidad en `updateMany`
           updates.push({
             reservation_id: existingReservation.reservation_id,
             quantity: existingReservation.quantity + quantity,
           });
         } else {
-          // 🔹 Agregar nueva reserva en `createMany`
           inserts.push({
             user_id,
             product_id,
@@ -295,7 +295,6 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
         }
       }
   
-      // 🔹 Ejecutar transacción optimizada
       await this.$transaction(async (prisma) => {
         if (updates.length > 0) {
           await Promise.all(
@@ -313,7 +312,6 @@ export class ProductsService extends PrismaClient implements OnModuleInit {
         }
       });
   
-      // 🔹 Actualizar stock después de la transacción (mejor rendimiento)
       await this.updateProductStock(reservations);
   
       return { message: 'Reservations created successfully.' };
