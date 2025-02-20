@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsString, IsUUID, ValidateNested } from 'class-validator';
+import { IsString, IsUUID, ValidateNested, IsUrl } from 'class-validator';
 
 export class BillingDetailsDto {
   @IsString()
@@ -29,4 +29,10 @@ export class PaymentSessionDto {
   @ValidateNested()
   @Type(() => BillingDetailsDto)
   billing_details: BillingDetailsDto;
+
+  @IsUrl() 
+  success_url: string;
+
+  @IsUrl()
+  cancel_url: string;
 }

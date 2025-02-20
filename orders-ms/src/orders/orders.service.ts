@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ClientProxy, RpcException } from '@nestjs/microservices';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { NATS_SERVICE } from 'src/config/services';
 import { firstValueFrom } from 'rxjs';
 import { OrderWithProducts } from './interface/order-with-products.interface';
@@ -21,195 +21,6 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
   // async createOrder(createOrderDto: CreateOrderDto) {
   //   const { user_id } = createOrderDto;
   //   try {
-  //     const [cartResponse] = await Promise.all([
-  //       firstValueFrom(this.client.send('cart.items.get', { user_id })),
-  //       this.$connect(),
-  //     ]);
-  
-  //     const cartItems = cartResponse.cart;
-  
-  //     if (!cartItems || cartItems.length === 0) {
-  //       throw new RpcException({
-  //         status: 400,
-  //         message: 'The user has no products in the cart.',
-  //       });
-  //     }
-  
-  //     const shippingDetails = {
-  //       STANDARD: 3.99,
-  //       EXPRESS: 7.99,
-  //       STORE: 0.0,
-  //     };
-  
-  //     const shipping_method = cartResponse.shipping_method || 'STANDARD';
-  //     const shipping_cost = shippingDetails[shipping_method];
-  
-  //     const totalAmount = cartItems.reduce(
-  //       (sum, item) => sum + item.quantity * parseFloat(item.price),
-  //       0,
-  //     );
-  //     const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  //     const finalAmount = totalAmount + shipping_cost;
-  
-  //     const orderPromise = this.$transaction(async (prisma) => {
-  //       const newOrder = await prisma.order.create({
-  //         data: {
-  //           user_id,
-  //           total_amount: finalAmount,
-  //           total_items: totalItems,
-  //         },
-  //       });
-  
-  //       await prisma.order_item.createMany({
-  //         data: cartItems.map((item) => ({
-  //           order_id: newOrder.order_id,
-  //           product_id: item.product_id,
-  //           quantity: item.quantity,
-  //           price: parseFloat(item.price),
-  //           product_name: item.product_name,
-  //           image_url: item.image_url,
-  //         })),
-  //       });
-  
-  //       return newOrder;
-  //     });
-  
-  //     const { order_id } = await orderPromise;
-  
-  //     const fullOrder = await this.order.findUnique({
-  //       where: { order_id },
-  //       include: { order_items: true },
-  //     });
-  
-  //     const reservations = cartItems.map((item) => ({
-  //       product_id: item.product_id,
-  //       order_id,
-  //       quantity: item.quantity,
-  //       user_id,
-  //     }));
-  
-  //     const reservationsPromise = firstValueFrom(
-  //       this.client.send('create_reservations', { reservations }),
-  //     );
-  
-  //     await reservationsPromise;
-  
-  //     this.client.emit('order.created', {
-  //       order_id,
-  //       user_id,
-  //       total_amount: fullOrder.total_amount,
-  //       total_items: fullOrder.total_items,
-  //       order_items: fullOrder.order_items,
-  //     });
-  
-  //     return fullOrder;
-  //   } catch (error) {
-  //     throw new RpcException({
-  //       status: 400,
-  //       message: error.message,
-  //     });
-  //   }
-  // }
-
-  // //**********************************************
-  // async createOrder(createOrderDto: CreateOrderDto) {
-  //   const { user_id } = createOrderDto;
-  //   try {
-  //     const cartPromise = firstValueFrom(this.client.send('cart.items.get', { user_id }));
-  
-  //     await this.$connect();
-  
-  //     const cartResponse = await cartPromise;
-  //     const cartItems = cartResponse.cart;
-  
-  //     if (!cartItems || cartItems.length === 0) {
-  //       throw new RpcException({
-  //         status: 400,
-  //         message: 'The user has no products in the cart.',
-  //       });
-  //     }
-  
-  //     const shippingDetails = {
-  //       STANDARD: 3.99,
-  //       EXPRESS: 7.99,
-  //       STORE: 0.0,
-  //     };
-  
-  //     const shipping_method = cartResponse.shipping_method || 'STANDARD';
-  //     const shipping_cost = shippingDetails[shipping_method];
-  
-  //     const totalAmount = cartItems.reduce(
-  //       (sum, item) => sum + item.quantity * parseFloat(item.price),
-  //       0,
-  //     );
-  //     const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  //     const finalAmount = totalAmount + shipping_cost;
-  
-  //     const orderPromise = this.$transaction(async (prisma) => {
-  //       const newOrder = await prisma.order.create({
-  //         data: {
-  //           user_id,
-  //           total_amount: finalAmount,
-  //           total_items: totalItems,
-  //         },
-  //       });
-  
-  //       await prisma.order_item.createMany({
-  //         data: cartItems.map((item) => ({
-  //           order_id: newOrder.order_id,
-  //           product_id: item.product_id,
-  //           quantity: item.quantity,
-  //           price: parseFloat(item.price),
-  //           product_name: item.product_name,
-  //           image_url: item.image_url,
-  //         })),
-  //       });
-  
-  //       return newOrder;
-  //     });
-  
-  //     const { order_id } = await orderPromise;
-  
-  //     const reservations = cartItems.map((item) => ({
-  //       product_id: item.product_id,
-  //       order_id,
-  //       quantity: item.quantity,
-  //       user_id,
-  //     }));
-  
-  //     const reservationsPromise = firstValueFrom(
-  //       this.client.send('create_reservations', { reservations }),
-  //     );
-  
-  //     const fullOrderPromise = this.order.findUnique({
-  //       where: { order_id },
-  //       include: { order_items: true },
-  //     });
-  
-  //     const [fullOrder] = await Promise.all([fullOrderPromise, reservationsPromise]);
-  
-  //     this.client.emit('order.created', {
-  //       order_id,
-  //       user_id,
-  //       total_amount: fullOrder.total_amount,
-  //       total_items: fullOrder.total_items,
-  //       order_items: fullOrder.order_items,
-  //     });
-  
-  //     return fullOrder;
-  //   } catch (error) {
-  //     throw new RpcException({
-  //       status: 400,
-  //       message: error.message,
-  //     });
-  //   }
-  // }
-  
-  //* **********************************************
-  // async createOrder(createOrderDto: CreateOrderDto) {
-  //   const { user_id } = createOrderDto;
-  //   try {
-  //     // 🔹 Obtener carrito del usuario
   //     const cartResponse = await firstValueFrom(this.client.send('cart.items.get', { user_id }));
   //     const cartItems = cartResponse.cart;
   
@@ -220,19 +31,22 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
   //       });
   //     }
   
-  //     // 🔹 Definir costos de envío
   //     const shipping_method = cartResponse.shipping_method || 'STANDARD';
   //     const shipping_cost = { STANDARD: 3.99, EXPRESS: 7.99, STORE: 0.0 }[shipping_method];
   
-  //     // 🔹 Calcular totales
   //     const totalAmount = cartItems.reduce((sum, item) => sum + item.quantity * parseFloat(item.price), 0);
   //     const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   //     const finalAmount = totalAmount + shipping_cost;
   
-  //     // 🔹 Crear orden sin incluir `order_items`
   //     const order = await this.$transaction(async (prisma) => {
   //       const newOrder = await prisma.order.create({
-  //         data: { user_id, total_amount: finalAmount, total_items: totalItems, status: "PENDING", paid: false },
+  //         data: { 
+  //           user_id, 
+  //           total_amount: finalAmount, 
+  //           total_items: totalItems, 
+  //           status: "PENDING", 
+  //           paid: false 
+  //         },
   //       });
   
   //       await prisma.order_item.createMany({
@@ -251,20 +65,27 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
   
   //     const { order_id } = order;
   
-  //     // 🔹 Emitir evento sin bloquear el proceso
-  //     this.client.emit('order.created', { order_id, user_id, total_amount: finalAmount, totalItems });
+  //     const reservations = cartItems.map((item) => ({
+  //       product_id: item.product_id,
+  //       order_id,
+  //       quantity: item.quantity,
+  //       user_id,
+  //     }));
   
-  //     // ✅ Solo devolver el `order_id` (No `order_items`)
+  //     await Promise.all([
+  //       firstValueFrom(this.client.send('create_reservations', { reservations })), // 🔹 Crear reservas
+  //       this.client.emit('order.created', { order_id, user_id, total_amount: finalAmount, totalItems }) // 🔹 Emitir evento
+  //     ]);
+  
   //     return { order_id, user_id, total_amount: finalAmount, totalItems, status: "PENDING", paid: false };
   //   } catch (error) {
   //     throw new RpcException({ status: 400, message: error.message });
   //   }
   // }
-  
+
   async createOrder(createOrderDto: CreateOrderDto) {
     const { user_id } = createOrderDto;
     try {
-      // 🔹 Obtener carrito del usuario
       const cartResponse = await firstValueFrom(this.client.send('cart.items.get', { user_id }));
       const cartItems = cartResponse.cart;
   
@@ -275,24 +96,21 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
         });
       }
   
-      // 🔹 Definir costos de envío
       const shipping_method = cartResponse.shipping_method || 'STANDARD';
       const shipping_cost = { STANDARD: 3.99, EXPRESS: 7.99, STORE: 0.0 }[shipping_method];
   
-      // 🔹 Calcular totales
       const totalAmount = cartItems.reduce((sum, item) => sum + item.quantity * parseFloat(item.price), 0);
       const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
       const finalAmount = totalAmount + shipping_cost;
   
-      // 🔹 Crear la orden en la base de datos
       const order = await this.$transaction(async (prisma) => {
         const newOrder = await prisma.order.create({
-          data: { 
-            user_id, 
-            total_amount: finalAmount, 
-            total_items: totalItems, 
-            status: "PENDING", 
-            paid: false 
+          data: {
+            user_id,
+            total_amount: finalAmount,
+            total_items: totalItems,
+            status: "PENDING",
+            paid: false,
           },
         });
   
@@ -312,7 +130,6 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
   
       const { order_id } = order;
   
-      // 🔹 Crear estructura de reservas
       const reservations = cartItems.map((item) => ({
         product_id: item.product_id,
         order_id,
@@ -320,45 +137,28 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
         user_id,
       }));
   
-      // 🔹 Ejecutar `create_reservations` y `order.created` en paralelo para que no bloqueen la respuesta
       await Promise.all([
-        firstValueFrom(this.client.send('create_reservations', { reservations })), // 🔹 Crear reservas
-        this.client.emit('order.created', { order_id, user_id, total_amount: finalAmount, totalItems }) // 🔹 Emitir evento
+        firstValueFrom(this.client.send('create_reservations', { reservations })),
+        this.client.emit('order.created', {
+          order_id,
+          user_id,
+          total_amount: finalAmount,
+          totalItems,
+        }),
       ]);
   
-      // ✅ Solo devolver el `order_id`, el cliente puede hacer `GET /orders/:order_id` si necesita más detalles.
-      return { order_id, user_id, total_amount: finalAmount, totalItems, status: "PENDING", paid: false };
+      return {
+        order_id,
+        user_id,
+        total_amount: finalAmount,
+        totalItems,
+        status: "PENDING",
+        paid: false,
+      };
     } catch (error) {
       throw new RpcException({ status: 400, message: error.message });
     }
   }
-  
-  
-  // async findOrderById(order_id: string, includeOrderItems = true) {
-  //   const order = await this.order.findUnique({
-  //     where: { order_id },
-  //     include: includeOrderItems ? { order_items: true } : undefined,
-  //   });
-
-  //   if (!order) {
-  //     throw new RpcException({
-  //       status: 404,
-  //       message: `Order with ID ${order_id} not found.`,
-  //     });
-  //   }
-
-  //   const cartResponse = await firstValueFrom(
-  //     this.client.send('cart.items.get', { user_id: order.user_id }),
-  //   );
-  //   const { subtotal, shipping_cost, total } = cartResponse;
-
-  //   return {
-  //     ...order,
-  //     subtotal,
-  //     shipping_cost,
-  //     total,
-  //   };
-  // }
 
   async findOrderById(order_id: string, includeOrderItems = true) {
     // 🔹 Obtener la orden con o sin `order_items`
@@ -373,13 +173,11 @@ export class OrdersService extends PrismaClient implements OnModuleInit {
         message: `Order with ID ${order_id} not found.`,
       });
     }
-  
-    // 🔹 Si no se necesitan `order_items`, devolver la orden tal cual
+
     if (!includeOrderItems) {
       return order;
     }
-  
-    // 🔹 Obtener costos dinámicos del carrito (Si se necesitan más detalles)
+
     const cartResponse = await firstValueFrom(this.client.send('cart.items.get', { user_id: order.user_id }));
     const { subtotal, shipping_cost, total } = cartResponse;
   
