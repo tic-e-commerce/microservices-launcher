@@ -128,7 +128,7 @@ export class AuthService extends PrismaClient implements OnModuleInit {
         { email: user.email, sub: user.user_id },
         { expiresIn: '1h' },
       );
-      const resetUrl = `${envs.FRONTEND_URL}/auth/reset-password?token=${token}`;
+      const resetUrl = `https://host-app-1041632795031.us-central1.run.app/reset-password?token=${token}`;
       const mailText = `Please click the following link to reset your password: ${resetUrl}`;
       await this.mailerService.sendMail(email, 'Password Reset', mailText);
 
