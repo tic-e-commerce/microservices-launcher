@@ -28,8 +28,8 @@ payments-ms:
   image:
     repository: "us-central1-docker.pkg.dev/main-stack-446713-e6/backend-tic/payments-ms"
     tag: "latest"
-  frontendUrlSuccess: "http://localhost:3000/success"
-  frontendUrlCancel: "http://localhost:3000/cancel"
+  frontendUrlSuccess: "https://host-app-1041632795031.us-central1.run.app/payment-success"
+  frontendUrlCancel: "https://host-app-1041632795031.us-central1.run.app/payment-cancel"
 
 cart-ms:
   enabled: true
